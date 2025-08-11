@@ -1,31 +1,10 @@
 <!DOCTYPE html>
-<html>
-  <head lang="en">
-    <!-- Google tag (gtag.js) -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-29YV7SY3QT"
-    ></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag("js", new Date());
-
-      gtag("config", "G-29YV7SY3QT");
-    </script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script
-      type="text/javascript"
-      id="MathJax-script"
-      async
-      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
-    ></script>
-
+<html lang="en">
+  <head>
     <meta charset="UTF-8" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
-
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MIMIC</title>
 
     <link
@@ -47,12 +26,9 @@
     />
     <link rel="manifest" href="./favicon_io/site.webmanifest" />
 
-    <meta name="description" content="" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-
     <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
       rel="stylesheet"
-      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"
     />
     <link
       rel="stylesheet"
@@ -62,11 +38,6 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.8.0/codemirror.min.css"
     />
-
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.8.0/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.3/clipboard.min.js"></script>
 
     <link
       rel="stylesheet"
@@ -751,6 +722,24 @@
         color: #fff;
         box-shadow: 0 0.1em 0.1em 0 rgba(70, 70, 70, 0.45);
       }
+
+      .carousel-indicators [data-bs-target] {
+        background-color: rgb(0, 0, 0, 0.8);
+      }
+      .carousel-control-prev,
+      .carousel-control-next {
+        width: 100px;
+        height: 100px;
+        margin: auto 10px;
+        background-color: rgba(0, 0, 0, 0.8); /* background behind arrow */
+        background-size: 100% 100%; /* keep the SVG scaled */
+        border-radius: 50%; /* optional: make circular */
+      }
+      .caption-text {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #000000ba;
+      }
     </style>
     <script>
       var bars = null;
@@ -760,7 +749,7 @@
 
       function toggleMenuVisibility() {
         changeClass("nav-icon");
-        document.getElementById("dropdown-menu").classList.toggle("hidden");
+        document.getElementById("dropdown-menu").classList.toggle("d-none");
       }
 
       function adjustNavMenuColor(scroll) {
@@ -827,8 +816,8 @@
 
         if (elem) {
           elem.classList.toggle(
-            "hidden",
-            elem.classList.contains("hidden") !== true,
+            "d-none",
+            elem.classList.contains("d-none") !== true,
           );
         }
       }
@@ -838,8 +827,8 @@
           var elem = document.getElementById(item);
           if (elem) {
             elem.classList.toggle(
-              "hidden",
-              elem.classList.contains("hidden") !== true,
+              "d-none",
+              elem.classList.contains("d-none") !== true,
             );
           }
         }
@@ -859,7 +848,7 @@
           <i id="nav-icon" class="clickable las la-bars la"></i>
         </button>
 
-        <div id="dropdown-menu" class="hidden">
+        <div id="dropdown-menu" class="d-none">
           <ul>
             <li><a href="#mimic">MIMIC</a></li>
             <li><a href="#overview">Overview</a></li>
@@ -874,15 +863,23 @@
 
     <div class="container div1" align="center" id="mimic">
       <h1 class="divtext1 font1">
-        <span class="mimic">MIMIC</span>: Multimodal Inversion for Model <br />
-        Interpretation and Conceptualization
+        <b>
+          MIMIC: Multimodal Inversion for Model Interpretation and
+          Conceptualization
+        </b>
       </h1>
       <!-- <h3 style="padding-top: 6px;" class="font2">ICASSP 2026</h3>  -->
-      <h3 style="padding-top: 6px" class="font1">
-        <a href="https://www.linkedin.com/in/animesh-jain1203/" target="_blank"
+      <h3 style="padding-top: 6px">
+        <a
+          class="link-primary link-offset-2"
+          href="https://www.linkedin.com/in/animesh-jain1203/"
+          target="_blank"
           >Animesh Jain</a
         >,
-        <a href="https://alexandrosstergiou.github.io/" target="_blank"
+        <a
+          class="link-primary link-offset-2"
+          href="https://alexandrosstergiou.github.io/"
+          target="_blank"
           >Alexandros Stergiou</a
         >
       </h3>
@@ -1055,6 +1052,248 @@
       <br />
 
       <div class="text-center">
+        <div id="inversionExample" class="carousel slide mb-4">
+          <div class="carousel-indicators">
+            <button
+              type="button"
+              data-bs-target="#inversionExample"
+              data-bs-slide-to="0"
+              class="active"
+              aria-current="true"
+              aria-label="Slide 1"
+            ></button>
+            <button
+              type="button"
+              data-bs-target="#inversionExample"
+              data-bs-slide-to="1"
+              aria-label="Slide 2"
+            ></button>
+            <button
+              type="button"
+              data-bs-target="#inversionExample"
+              data-bs-slide-to="2"
+              aria-label="Slide 3"
+            ></button
+            ><button
+              type="button"
+              data-bs-target="#inversionExample"
+              data-bs-slide-to="3"
+              aria-label="Slide 4"
+            ></button
+            ><button
+              type="button"
+              data-bs-target="#inversionExample"
+              data-bs-slide-to="4"
+              aria-label="Slide 5"
+            ></button>
+          </div>
+
+          <div class="carousel-inner">
+            <div class="carousel-item active">
+              <div class="container p-0 m-2">
+                <div class="row g-3">
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/1_1.png"
+                      class="img-fluid border"
+                      alt="Image 1"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/1_2.png"
+                      class="img-fluid border"
+                      alt="Image 2"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/1_3.png"
+                      class="img-fluid border"
+                      alt="Image 3"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/1_4.png"
+                      class="img-fluid border"
+                      alt="Image 4"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="carousel-caption d-none d-md-block">
+                <span class="caption-text">Goldfish</span>
+              </div>
+            </div>
+            <div class="carousel-item">
+              <div class="container p-0 m-2">
+                <div class="row g-3">
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/207_1.png"
+                      class="img-fluid border"
+                      alt="Image 1"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/207_2.png"
+                      class="img-fluid border"
+                      alt="Image 2"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/207_3.png"
+                      class="img-fluid border"
+                      alt="Image 3"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/207_4.png"
+                      class="img-fluid border"
+                      alt="Image 4"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="carousel-caption d-none d-md-block">
+                <span class="caption-text">Golden Retriever</span>
+              </div>
+            </div>
+            <div class="carousel-item">
+              <div class="container p-0 m-2">
+                <div class="row g-3">
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/292_1.png"
+                      class="img-fluid border"
+                      alt="Image 1"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/292_2.png"
+                      class="img-fluid border"
+                      alt="Image 2"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/292_3.png"
+                      class="img-fluid border"
+                      alt="Image 3"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/292_4.png"
+                      class="img-fluid border"
+                      alt="Image 4"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="carousel-caption d-none d-md-block">
+                <span class="caption-text">Tiger</span>
+              </div>
+            </div>
+            <div class="carousel-item">
+              <div class="container p-0 m-2">
+                <div class="row g-3">
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/932_1.png"
+                      class="img-fluid border"
+                      alt="Image 1"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/932_2.png"
+                      class="img-fluid border"
+                      alt="Image 2"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/932_3.png"
+                      class="img-fluid border"
+                      alt="Image 3"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/932_4.png"
+                      class="img-fluid border"
+                      alt="Image 4"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="carousel-caption d-none d-md-block">
+                <span class="caption-text">Pretzel</span>
+              </div>
+            </div>
+            <div class="carousel-item">
+              <div class="container p-0 m-2">
+                <div class="row g-3">
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/987_1.png"
+                      class="img-fluid border"
+                      alt="Image 1"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/987_2.png"
+                      class="img-fluid border"
+                      alt="Image 2"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/987_3.png"
+                      class="img-fluid border"
+                      alt="Image 3"
+                    />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <img
+                      src="img/987_4.png"
+                      class="img-fluid border"
+                      alt="Image 4"
+                    />
+                  </div>
+                </div>
+                <div class="carousel-caption d-none d-md-block">
+                  <span class="caption-text">Corn</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            class="carousel-control-prev"
+            type="button"
+            data-bs-target="#inversionExample"
+            data-bs-slide="prev"
+          >
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+          </button>
+          <button
+            class="carousel-control-next"
+            type="button"
+            data-bs-target="#inversionExample"
+            data-bs-slide="next"
+          >
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+          </button>
+        </div>
         <figure id="fig-mimic" style="text-align: center">
           <img
             src="img/results.jpg"
@@ -1072,7 +1311,6 @@
         </figure>
       </div>
       <br /><br />
-
       <p class="absfont">
         We invert <strong>LLaVA-1.5</strong> that consists of a
         <strong>CLIP ViT-L/14</strong> vision encoder and a
@@ -1120,10 +1358,8 @@
         ><i class="fa-solid fa-paper-plane"></i
         >&nbsp;animesh.jain1203@gmail.com</a
       ><br />
-    </div>
-    <div class="row align-items-center">
-      <center>
-        <div class="col thumb d-flex align-items-center">
+      <div class="row text-center">
+        <div class="col-md-12">
           <img
             class="img-fluid"
             src="img/UT_Logo_2400_Black_EN.png"
@@ -1131,24 +1367,19 @@
             alt=""
           />
         </div>
-      </center>
+      </div>
     </div>
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.8.0/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.3/clipboard.min.js"></script>
     <script
-      src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-      integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-      crossorigin="anonymous"
+      type="text/javascript"
+      id="MathJax-script"
+      async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
     ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"
-      integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
-      integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-      crossorigin="anonymous"
-    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
