@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html>
+  <head lang="en">
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-29YV7SY3QT"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-29YV7SY3QT");
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script
+      type="text/javascript"
+      id="MathJax-script"
+      async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
+    ></script>
+
+    <meta charset="UTF-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+
+    <title>MIMIC</title>
+
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="./favicon_io/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="./favicon_io/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="./favicon_io/favicon-16x16.png"
+    />
+    <link rel="manifest" href="./favicon_io/site.webmanifest" />
+
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://maxst.icons8.com/vue-static/landings/line-awesome/line-awesome/1.3.0/css/line-awesome.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.8.0/codemirror.min.css"
+    />
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.8.0/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.3/clipboard.min.js"></script>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://maxst.icons8.com/vue-static/landings/line-awesome/line-awesome/1.3.0/css/line-awesome.min.css"
+    />
+    <link rel="stylesheet" href="./css/design.css" />
+    <link rel="stylesheet" href="./academicons-1.9.4/css/academicons.min.css" />
+
+    <style>
+      .button_c {
+        border: none;
+        color: black;
+        padding: 0.5em 1em;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        margin: 0.1em 0.1em;
+        -webkit-transition-duration: 0.8s; /* Safari Chrome */
+        -moz-transition-duration: 0.8; /* Firefox */
+        transition-duration: 0.8s;
+        border-radius: 0.4em;
+        cursor: pointer;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        cursor: pointer;
+      }
+
+      .button_c:hover {
+        background-color: #00000015;
+        color: #1e4258;
+        box-shadow: 0 0.4em 0.4em 0 rgba(0, 0, 0, 0.24),
+          0 0.4em 0.4em 0 rgba(0, 0, 0, 0.19);
+        cursor: pointer;
+      }
+
+      .container-video {
+        position: relative;
+        width: 80%;
+        max-width: 1000px;
+        margin: 20px 0;
+        overflow: hidden;
+        display: inline-block;
+      }
+
+      .video-wrapper {
+        position: relative;
+        width: 30%;
+        height: auto;
+        display: inline-block;
+      }
+
+      video {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      .video-wrapper video:first-child {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      .video-wrapper video:last-child {
+        position: absolute;
+        top: 0;
+        left: 0;
+        clip-path: inset(0 50% 0 0);
+      }
+
+      .slider {
+        position: absolute;
+        top: 0;
+        left: 90%;
+        width: 4px;
+        height: 100%;
+        background-color: #fff;
+        cursor: pointer;
+        z-index: 1;
+        -webkit-transform: translateX(-50%);
+        -ms-transform: translateX(-50%);
+        transform: translateX(-50%);
+        line-height: normal;
+        opacity: 0.7;
+      }
+
+      .slider:hover {
+        opacity: 1;
+      }
+
+      .slider:hover :before {
+        color: #fff;
+        border-color: #fff;
+      }
+
+      .slider:before {
+        content: "";
+        -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyIDUxMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+LnN0MHtmaWxsOiNGRkZGRkY7ZW5hYmxlLWJhY2tncm91bmQ6bmV3ICAgIDt9PC9zdHlsZT48cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTgwLjIsMTA4LjFsNjEuNy02Mi4yYzMuOC0zLjgsOC44LTUuOSwxNC4xLTUuOWM1LjMsMCwxMC40LDIuMSwxNC4xLDUuOWw2MS43LDYyLjJjMy45LDMuOSw5LjEsNS45LDE0LjIsNS45czEwLjItMS45LDE0LjEtNS44YzcuOC03LjgsNy45LTIwLjQsMC4xLTI4LjNsLTYxLjctNjIuMkMyODcuMiw2LjMsMjcyLjEsMCwyNTYsMHMtMzEuMiw2LjMtNDIuNSwxNy44TDE1MS44LDgwYy03LjgsNy44LTcuNywyMC41LDAuMSwyOC4zQzE1OS44LDExNiwxNzIuNCwxMTUuOSwxODAuMiwxMDguMXoiLz48cGF0aCBjbGFzcz0ic3QwIiBkPSJNMzMxLjgsNDAzLjlsLTYxLjcsNjIuMmMtMy44LDMuOC04LjgsNS45LTE0LjEsNS45Yy01LjMsMC0xMC40LTIuMS0xNC4xLTUuOWwtNjEuNy02Mi4yYy03LjgtNy44LTIwLjQtNy45LTI4LjMtMC4xYy03LjgsNy44LTcuOSwyMC40LTAuMSwyOC4zbDYxLjcsNjIuMmMxMS40LDExLjQsMjYuNSwxNy44LDQyLjUsMTcuOHMzMS4yLTYuMyw0Mi41LTE3LjhsNjEuNy02Mi4yYzcuOC03LjgsNy43LTIwLjUtMC4xLTI4LjNDMzUyLjIsMzk2LDMzOS42LDM5Ni4xLDMzMS44LDQwMy45eiIvPjwvc3ZnPg==)
+          no-repeat 100% 100%;
+        mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyIDUxMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+LnN0MHtmaWxsOiNGRkZGRkY7ZW5hYmxlLWJhY2tncm91bmQ6bmV3ICAgIDt9PC9zdHlsZT48cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTgwLjIsMTA4LjFsNjEuNy02Mi4yYzMuOC0zLjgsOC44LTUuOSwxNC4xLTUuOWM1LjMsMCwxMC40LDIuMSwxNC4xLDUuOWw2MS43LDYyLjJjMy45LDMuOSw5LjEsNS45LDE0LjIsNS45czEwLjItMS45LDE0LjEtNS44YzcuOC03LjgsNy45LTIwLjQsMC4xLTI4LjNsLTYxLjctNjIuMkMyODcuMiw2LjMsMjcyLjEsMCwyNTYsMHMtMzEuMiw2LjMtNDIuNSwxNy44TDE1MS44LDgwYy03LjgsNy44LTcuNywyMC41LDAuMSwyOC4zQzE1OS44LDExNiwxNzIuNCwxMTUuOSwxODAuMiwxMDguMXoiLz48cGF0aCBjbGFzcz0ic3QwIiBkPSJNMzMxLjgsNDAzLjlsLTYxLjcsNjIuMmMtMy44LDMuOC04LjgsNS45LTE0LjEsNS45Yy01LjMsMC0xMC40LTIuMS0xNC4xLTUuOWwtNjEuNy02Mi4yYy03LjgtNy44LTIwLjQtNy45LTI4LjMtMC4xYy03LjgsNy44LTcuOSwyMC40LTAuMSwyOC4zbDYxLjcsNjIuMmMxMS40LDExLjQsMjYuNSwxNy44LDQyLjUsMTcuOHMzMS4yLTYuMyw0Mi41LTE3LjhsNjEuNy02Mi4yYzcuOC03LjgsNy43LTIwLjUtMC4xLTI4LjNDMzUyLjIsMzk2LDMzOS42LDM5Ni4xLDMzMS44LDQwMy45eiIvPjwvc3ZnPg==)
+          no-repeat 100% 100%;
+        mask-size: cover;
+        -webkit-mask-size: cover;
+        width: 26px;
+        color: #fff;
+        height: 26px;
+        padding: 0;
+        background-color: currentColor;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        -webkit-transform: translate(-50%, -50%) rotate(90deg);
+        -ms-transform: translate(-50%, -50%) rotate(90deg);
+        transform: translate(-50%, -50%) rotate(90deg);
+        z-index: 2;
+        font-size: 0;
+      }
+
+      .slider:after {
+        top: 50%;
+        left: 0;
+        -webkit-transform: translateY(-50%);
+        -ms-transform: translateY(-50%);
+        transform: translateY(-50%);
+        width: 100%;
+        height: 3px;
+      }
+
+      .b-dics__slider {
+        color: #fff;
+        position: absolute;
+        left: 90%;
+        top: 0;
+        cursor: pointer;
+        -webkit-transform: translateX(-50%);
+        -ms-transform: translateX(-50%);
+        transform: translateX(-50%);
+        height: 100%;
+        width: 3px;
+        padding: 0 30px;
+        z-index: 1;
+        -ms-touch-action: none;
+        touch-action: none;
+        line-height: normal;
+        opacity: 0.7;
+      }
+
+      .b-dics__slider:before {
+        content: "";
+        -webkit-mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyIDUxMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+LnN0MHtmaWxsOiNGRkZGRkY7ZW5hYmxlLWJhY2tncm91bmQ6bmV3ICAgIDt9PC9zdHlsZT48cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTgwLjIsMTA4LjFsNjEuNy02Mi4yYzMuOC0zLjgsOC44LTUuOSwxNC4xLTUuOWM1LjMsMCwxMC40LDIuMSwxNC4xLDUuOWw2MS43LDYyLjJjMy45LDMuOSw5LjEsNS45LDE0LjIsNS45czEwLjItMS45LDE0LjEtNS44YzcuOC03LjgsNy45LTIwLjQsMC4xLTI4LjNsLTYxLjctNjIuMkMyODcuMiw2LjMsMjcyLjEsMCwyNTYsMHMtMzEuMiw2LjMtNDIuNSwxNy44TDE1MS44LDgwYy03LjgsNy44LTcuNywyMC41LDAuMSwyOC4zQzE1OS44LDExNiwxNzIuNCwxMTUuOSwxODAuMiwxMDguMXoiLz48cGF0aCBjbGFzcz0ic3QwIiBkPSJNMzMxLjgsNDAzLjlsLTYxLjcsNjIuMmMtMy44LDMuOC04LjgsNS45LTE0LjEsNS45Yy01LjMsMC0xMC40LTIuMS0xNC4xLTUuOWwtNjEuNy02Mi4yYy03LjgtNy44LTIwLjQtNy45LTI4LjMtMC4xYy03LjgsNy44LTcuOSwyMC40LTAuMSwyOC4zbDYxLjcsNjIuMmMxMS40LDExLjQsMjYuNSwxNy44LDQyLjUsMTcuOHMzMS4yLTYuMyw0Mi41LTE3LjhsNjEuNy02Mi4yYzcuOC03LjgsNy43LTIwLjUtMC4xLTI4LjNDMzUyLjIsMzk2LDMzOS42LDM5Ni4xLDMzMS44LDQwMy45eiIvPjwvc3ZnPg==)
+          no-repeat 100% 100%;
+        mask: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTEyIDUxMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+LnN0MHtmaWxsOiNGRkZGRkY7ZW5hYmxlLWJhY2tncm91bmQ6bmV3ICAgIDt9PC9zdHlsZT48cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTgwLjIsMTA4LjFsNjEuNy02Mi4yYzMuOC0zLjgsOC44LTUuOSwxNC4xLTUuOWM1LjMsMCwxMC40LDIuMSwxNC4xLDUuOWw2MS43LDYyLjJjMy45LDMuOSw5LjEsNS45LDE0LjIsNS45czEwLjItMS45LDE0LjEtNS44YzcuOC03LjgsNy45LTIwLjQsMC4xLTI4LjNsLTYxLjctNjIuMkMyODcuMiw2LjMsMjcyLjEsMCwyNTYsMHMtMzEuMiw2LjMtNDIuNSwxNy44TDE1MS44LDgwYy03LjgsNy44LTcuNywyMC41LDAuMSwyOC4zQzE1OS44LDExNiwxNzIuNCwxMTUuOSwxODAuMiwxMDguMXoiLz48cGF0aCBjbGFzcz0ic3QwIiBkPSJNMzMxLjgsNDAzLjlsLTYxLjcsNjIuMmMtMy44LDMuOC04LjgsNS45LTE0LjEsNS45Yy01LjMsMC0xMC40LTIuMS0xNC4xLTUuOWwtNjEuNy02Mi4yYy03LjgtNy44LTIwLjQtNy45LTI4LjMtMC4xYy03LjgsNy44LTcuOSwyMC40LTAuMSwyOC4zbDYxLjcsNjIuMmMxMS40LDExLjQsMjYuNSwxNy44LDQyLjUsMTcuOHMzMS4yLTYuMyw0Mi41LTE3LjhsNjEuNy02Mi4yYzcuOC03LjgsNy43LTIwLjUtMC4xLTI4LjNDMzUyLjIsMzk2LDMzOS42LDM5Ni4xLDMzMS44LDQwMy45eiIvPjwvc3ZnPg==)
+          no-repeat 100% 100%;
+        mask-size: cover;
+        -webkit-mask-size: cover;
+        width: 26px;
+        height: 26px;
+        padding: 0;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        -webkit-transform: translate(-50%, -50%) rotate(90deg);
+        -ms-transform: translate(-50%, -50%) rotate(90deg);
+        transform: translate(-50%, -50%) rotate(90deg);
+        z-index: 2;
+        font-size: 0;
+      }
+
+      .b-dics__slider:after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 0;
+        -webkit-transform: translateX(-50%);
+        -ms-transform: translateX(-50%);
+        transform: translateX(-50%);
+        height: 100%;
+        width: 3px;
+        background-color: currentColor;
+        z-index: 1;
+      }
+
+      #slider {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 4px;
+        height: 100%;
+        background-color: #418fc0;
+        cursor: ew-resize;
+        z-index: 10;
+      }
+      .button {
+        background-color: black;
+        border: none;
+        color: white;
+        padding: 1em 2em;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 0.8em;
+        margin: 0.3em 0.3em;
+        -webkit-transition-duration: 0.8s; /* Safari Chrome */
+        -moz-transition-duration: 0.8; /* Firefox */
+        transition-duration: 0.8s;
+        cursor: pointer;
+        border-radius: 0.7em;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      .button:hover {
+        background-color: #1e4258;
+        color: white;
+        box-shadow: 0 2em 2em 0 rgba(0, 0, 0, 0.24),
+          0 1em 1em 0 rgba(0, 0, 0, 0.19);
+      }
+
+      .circle {
+        border-radius: 50%;
+      }
+
+      .xxlarge {
+        font-size: 240%;
+      }
+
+      .xlarge {
+        font-size: 150%;
+      }
+
+      .hover-grey:hover {
+        color: #1e4258;
+      }
+
+      .white {
+        color: #fff;
+      }
+
+      .light-grey {
+        color: #f1f1f1;
+      }
+
+      .boxed {
+        border-style: solid none solid none;
+        border-width: 0.5%;
+        border-color: white;
+      }
+
+      .boxed_grey {
+        border-style: solid none none none;
+        border-width: 0.05em;
+        border-color: #5b6362;
+      }
+
+      .middle {
+        text-align: center;
+      }
+      .mimic {
+        font-variant: small-caps;
+        font-family: "Latin Modern Roman", serif;
+      }
+      .div1 {
+        background-color: #e2e0e4;
+        border-radius: 15px;
+      }
+
+      .div2 {
+        display: block;
+        padding: 9.5px;
+        margin: 0 0 10px;
+        font-size: 14px;
+        line-height: 1.42857143;
+        word-break: break-all;
+        word-wrap: break-word;
+        color: #333;
+        background-color: #f5f5f5;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      .divtext1 {
+        font-size: 40px;
+      }
+
+      .font1 {
+        font-family: "Tenor Sans", sans-serif;
+      }
+
+      .font2 {
+        font-family: "Roboto", sans-serif;
+      }
+
+      .btndes {
+        border-radius: 20px;
+        background-color: #363636;
+        color: white;
+        text-decoration: none !important;
+      }
+
+      .btndes:hover {
+        background-color: black;
+        color: white;
+      }
+
+      .navsize1 {
+        font-size: 25px;
+      }
+      .navsize {
+        font-size: 18px;
+      }
+      .absfont {
+        font-size: 17px;
+      }
+
+      .navcolor {
+        background-color: #363636;
+      }
+
+      .navfontc {
+        color: white;
+      }
+
+      .margin-left {
+        margin-left: 10px;
+      }
+
+      .size2 {
+        font-size: 23px;
+      }
+
+      .datalink {
+        background-color: #e2e0e4;
+        border-radius: 10px;
+      }
+
+      .margin {
+        margin-left: 10px;
+        font-size: 15px;
+      }
+
+      .card {
+        box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16),
+          0 2px 10px 0 rgba(0, 0, 0, 0.12);
+      }
+
+      .card {
+        margin-top: 10px;
+        box-sizing: border-box;
+        border-radius: 2px;
+        background-clip: padding-box;
+        min-height: 200px;
+      }
+
+      .card span.card-title {
+        color: #fff;
+        font-size: 24px;
+        font-weight: 300;
+        text-transform: uppercase;
+      }
+
+      .card .card-image {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card .card-image img {
+        border-radius: 2px 2px 0 0;
+        background-clip: padding-box;
+        position: relative;
+        z-index: -1;
+      }
+
+      .card .card-image span.card-title {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        padding: 16px;
+      }
+
+      .card .card-content {
+        padding: 10px;
+        border-radius: 0 0 2px 2px;
+        background-clip: padding-box;
+        box-sizing: border-box;
+      }
+
+      .card .card-content p {
+        margin: 0;
+        color: inherit;
+      }
+
+      .card .card-content span.card-title {
+        line-height: 48px;
+      }
+
+      .card .card-action {
+        border-top: 1px solid rgba(160, 160, 160, 0.2);
+        padding: 16px;
+      }
+
+      .card .card-action a {
+        color: #ffab40;
+        margin-right: 16px;
+        transition: color 0.3s ease;
+        text-transform: uppercase;
+      }
+
+      .card .card-action a:hover {
+        color: #ffd8a6;
+        text-decoration: none;
+      }
+
+      .navbar {
+        overflow: hidden;
+        position: fixed;
+        top: 0;
+        z-index: 1;
+      }
+
+      .navbar a {
+        float: left;
+        display: block;
+        color: inherit;
+        opacity: 1;
+        margin: 0em 0em;
+        text-align: center;
+        padding: 0.4em 0.4em;
+        text-decoration: none;
+        font-size: 0.9em;
+      }
+
+      .navbar a:hover {
+        background: #000;
+      }
+
+      #nav-icon {
+        color: white;
+      }
+
+      #dropdown-menu {
+        position: fixed;
+        color: #fff;
+        width: 10em;
+      }
+
+      #dropdown-menu > ul {
+        list-style-type: none;
+        margin: 0;
+        overflow: auto;
+        padding: 0;
+        display: block;
+        width: inherit;
+        text-align: start;
+        color: #fff;
+        -webkit-transition: all 0.5s;
+        -moz-transition: all 0.5s;
+        transition: all 0.5s;
+        padding: 1.5em;
+        margin: -2em -0.5em;
+      }
+
+      #dropdown-menu > ul li a {
+        display: inline-block;
+        padding: 0px;
+        background: black;
+        width: 9em;
+        padding: 0.2em;
+      }
+
+      #dropdown-menu > ul li a:hover {
+        box-shadow: 0em 0.2em 0.2em 0em rgba(0, 0, 0, 0.55);
+      }
+
+      #dropdown-menu > ul li:first-child a {
+        border-radius: 0.8em 0.8em 0 0;
+      }
+
+      #dropdown-menu > ul li:last-child a {
+        border-radius: 0 0 0.8em 0.8em;
+      }
+
+      #social-platforms,
+      #page-anchors {
+        position: relative;
+        font-size: 1.1rem;
+        text-align: center;
+        height: auto;
+        overflow: hidden;
+      }
+
+      #social-platforms a {
+        background: rgba(230, 230, 230, 0.1);
+        text-align: center;
+        position: relative;
+        display: inline-block;
+        width: 1.7em;
+        height: 1.7em;
+        font-size: 1.4em;
+        color: #fff;
+        line-height: 1.05em;
+        border: 0;
+        cursor: pointer;
+        margin: 0.3em 0.2em;
+        padding: 0.15em;
+        box-shadow: 0em 0.35em 0.35em 0em rgba(0, 0, 0, 0.55);
+        border-radius: 0.3em 0.3em 0.3em 0.3em;
+        -webkit-transition: all 0.5s;
+        -moz-transition: all 0.5s;
+        transition: all 0.5s;
+      }
+
+      #page-anchors button {
+        background: #000;
+        text-align: center;
+        position: relative;
+        display: inline-block;
+        width: 1.7em;
+        height: 1.7em;
+        font-size: 1.7em;
+        color: #fff;
+        line-height: 1.05em;
+        border: 0;
+        cursor: pointer;
+        margin: 0.6em 0.3em;
+        padding: 0.17em;
+        box-shadow: 0em 0.3em 0.3em 0em rgba(0, 0, 0, 0.55);
+        border-radius: 0.3em 0.3em 0.3em 0.3em;
+        -webkit-transition: all 0.5s;
+        -moz-transition: all 0.5s;
+        transition: all 0.5s;
+      }
+
+      #social-platforms a span {
+        display: none;
+      }
+
+      #social-platforms a:after,
+      #page-anchors button:after {
+        opacity: 0;
+        font-size: 0.5em;
+        font-weight: 30em;
+        color: #fff;
+        background: #000;
+        content: attr(data-title);
+        white-space: nowrap;
+        display: block;
+        position: absolute;
+        left: 0;
+        bottom: 60em;
+        z-index: -5;
+        cursor: help;
+        padding: 3em 8em;
+        -webkit-transition: all 0.5s;
+        -moz-transition: all 0.5s;
+        transition: all 0.5s;
+      }
+
+      #social-platforms a:before,
+      #page-anchors button:before {
+        opacity: 0;
+        display: block;
+        position: absolute;
+        bottom: 5em;
+        left: 50%;
+        margin-left: -5em;
+        z-index: 9;
+        cursor: help;
+        content: "";
+        width: 0;
+        height: 0;
+        border-left: 5em solid transparent;
+        border-right: 5em solid transparent;
+        border-top: 5em solid #000;
+        -webkit-transition: all 0.5s;
+        -moz-transition: all 0.5s;
+        transition: all 0.5s;
+      }
+
+      #social-platforms a:hover,
+      #page-anchors a:hover,
+      #page-anchors button:hover {
+        color: white;
+        background-color: #1e4258;
+        box-shadow: 0 0.1em 0.1em 0 rgba(0, 0, 0, 0.45);
+      }
+
+      #social-platforms a:hover:before,
+      #social-platforms a:hover:after,
+      #page-anchors a:hover:before,
+      #page-anchors a:hover:after,
+      #page-anchors button:hover:before,
+      #page-anchors button:hover:after {
+        opacity: 1;
+        z-index: 50;
+      }
+
+      #project-platforms {
+        position: relative;
+        font-size: 1.2rem;
+        text-align: center;
+        height: auto;
+        overflow: hidden;
+      }
+
+      #project-platforms a {
+        background: rgba(170, 170, 170, 0.1);
+        text-align: center;
+        position: relative;
+        display: inline-block;
+        width: 1.4em;
+        height: 1.4em;
+        font-size: 1.75em;
+        color: #000;
+        line-height: 1.05em;
+        border: 0;
+        cursor: pointer;
+        margin: 0.9em 0.2em;
+        padding: 0.15em;
+        box-shadow: 0em 0.3em 0.3em 0em rgba(170, 170, 170, 0.65);
+        border-radius: 0.2em 0.2em 0.2em 0.2em;
+        -webkit-transition: all 0.5s;
+        -moz-transition: all 0.5s;
+        transition: all 0.5s;
+      }
+
+      #project-platforms a span {
+        display: none;
+      }
+
+      #project-platforms a:after {
+        opacity: 0;
+        font-size: 0.5em;
+        font-weight: 30em;
+        color: #000;
+        background: #000;
+        content: attr(data-title);
+        white-space: nowrap;
+        display: block;
+        position: absolute;
+        left: 0;
+        bottom: 60em;
+        z-index: -5;
+        cursor: help;
+        padding: 3em 8em;
+        -webkit-transition: all 0.5s;
+        -moz-transition: all 0.5s;
+        transition: all 0.5s;
+      }
+
+      #project-platforms a:before {
+        opacity: 0;
+        display: block;
+        position: absolute;
+        bottom: 5em;
+        left: 50%;
+        margin-left: -5em;
+        z-index: 9;
+        cursor: help;
+        content: "";
+        width: 0;
+        height: 0;
+        border-left: 5em solid transparent;
+        border-right: 5em solid transparent;
+        border-top: 5em solid #000;
+        -webkit-transition: all 0.5s;
+        -moz-transition: all 0.5s;
+        transition: all 0.5s;
+      }
+
+      #project-platforms a:hover {
+        background-color: #1e4258;
+        color: #fff;
+        box-shadow: 0 0.1em 0.1em 0 rgba(70, 70, 70, 0.45);
+      }
+    </style>
+    <script>
+      var bars = null;
+      var dropdown = null;
+      var whiteContainers = null;
+      var scrolledContainerIndex = null;
+
+      function toggleMenuVisibility() {
+        changeClass("nav-icon");
+        document.getElementById("dropdown-menu").classList.toggle("hidden");
+      }
+
+      function adjustNavMenuColor(scroll) {
+        var topOfContainer = -1;
+
+        if (!scroll) {
+          setTimeout(function () {
+            adjustNavMenuColor(document.body);
+          }, 1000);
+        } else {
+          for (var i = 0; i < whiteContainers.length; i++) {
+            var container = whiteContainers[i];
+
+            if (container.previousElementSibling) {
+              topOfContainer += container.previousElementSibling.clientHeight;
+            }
+
+            var bottomOfContainer = topOfContainer + container.clientHeight;
+
+            if (
+              scroll.scrollY >= topOfContainer &&
+              scroll.scrollY <= bottomOfContainer
+            ) {
+              bars.style.color = "#000";
+              dropdown.style.color = "#000";
+              scrolledContainerIndex = i;
+              break;
+            } else if (
+              bars.style.color === "rgb(0, 0, 0)" &&
+              i > scrolledContainerIndex
+            ) {
+              bars.style.color = "#fff";
+              dropdown.style.color = "#fff";
+              break;
+            }
+            topOfContainer += container.clientHeight;
+          }
+        }
+      }
+
+      function setupForScroll() {
+        bars = document.getElementById("nav-icon");
+        dropdown = document.getElementById("dropdown-menu");
+        whiteContainers = document.querySelectorAll("div.content.container");
+        adjustNavMenuColor(document.body);
+      }
+
+      function changeClass(id) {
+        var navicon = document.getElementById(id);
+
+        if (navicon.className == "clickable las la-bars la") {
+          navicon.className = "clickable las la-times la";
+          document.getElementById("navbutton").style.backgroundColor =
+            "#1E4258";
+        } else if (navicon.className == "clickable las la-times la") {
+          navicon.className = "clickable las la-bars la";
+          document.getElementById("navbutton").style.backgroundColor = "#000";
+        }
+      }
+    </script>
+    <script>
+      function displayForPublication(id) {
+        var elem = document.getElementById(id);
+
+        if (elem) {
+          elem.classList.toggle(
+            "hidden",
+            elem.classList.contains("hidden") !== true,
+          );
+        }
+      }
+
+      function displaymenuitems(items) {
+        for (var item in items) {
+          var elem = document.getElementById(item);
+          if (elem) {
+            elem.classList.toggle(
+              "hidden",
+              elem.classList.contains("hidden") !== true,
+            );
+          }
+        }
+      }
+
+      window.onload = function () {
+        document
+          .getElementById("nav-icon")
+          .addEventListener("click", changeClass);
+      };
+    </script>
+  </head>
+  <body>
+    <div id="nav" class="navbar">
+      <div id="page-anchors">
+        <button id="navbutton" onclick="toggleMenuVisibility()">
+          <i id="nav-icon" class="clickable las la-bars la"></i>
+        </button>
+
+        <div id="dropdown-menu" class="hidden">
+          <ul>
+            <li><a href="#mimic">MIMIC</a></li>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#framework">Framework</a></li>
+            <li><a href="#results">Results</a></li>
+            <li><a href="#cite">Citation</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="container div1" align="center" id="mimic">
+      <h1 class="divtext1 font1">
+        <span class="mimic">MIMIC</span>: Multimodal Inversion for Model <br />
+        Interpretation and Conceptualization
+      </h1>
+      <!-- <h3 style="padding-top: 6px;" class="font2">ICASSP 2026</h3>  -->
+      <h3 style="padding-top: 6px" class="font1">
+        <a href="https://www.linkedin.com/in/animesh-jain1203/" target="_blank"
+          >Animesh Jain</a
+        >,
+        <a href="https://alexandrosstergiou.github.io/" target="_blank"
+          >Alexandros Stergiou</a
+        >
+      </h3>
+      <h4 class="font2">University of Twente, NL</h4>
+
+      <div id="project-platforms">
+        <a
+          href="https://arxiv.org/abs/2406.09754"
+          target="_blank"
+          data-title="Paper"
+          ><i class="fa fa-file-pdf"></i><span>Paper</span></a
+        >
+
+        <a
+          href="https://arxiv.org/abs/2406.09754"
+          target="_blank"
+          data-title="ArXiv"
+          ><i class="ai ai-arxiv ai"></i><span>ArXiv</span></a
+        >
+
+        <a
+          href="https://github.com/anaekin/MIMIC"
+          target="_blank"
+          data-title="GitHub"
+          ><i class="lab la-github"></i><span>GitHub</span></a
+        >
+      </div>
+    </div>
+    <br /><br />
+    <div class="container">
+      <h1>Abstract</h1>
+      <br />
+      <p class="absfont">
+        Vision Language Models (VLMs) encode multimodal inputs over large,
+        complex, and difficult-to-interpret architectures, which limit
+        transparency and trust. We propose a <b>M</b>ultimodal <b>I</b>nversion
+        for <b>M</b>odel <b>I</b>nterpretation and <b>C</b>onceptualization
+        (<b>MIMIC</b>) framework to visualize the internal representations of
+        VLMs by synthesizing visual concepts corresponding to internal
+        encodings. MIMIC uses a joint VLM-based inversion and a feature
+        alignment objective to account for VLM's autoregressive processing. It
+        additionally includes a triplet of regularizers for spatial alignment,
+        natural image smoothness, and semantic realism. We quantitatively and
+        qualitatively evaluate MIMIC by inverting visual concepts over a range
+        of varying-length free-form VLM output texts. Reported results include
+        both standard visual quality metrics as well as semantic text-based
+        metrics. To the best of our knowledge, this is the first model inversion
+        approach addressing visual interpretations of VLM concepts.
+      </p>
+    </div>
+    <br /><br />
+    <div class="container" id="overview">
+      <h1>Overview</h1>
+      <br />
+      <div class="col-md-12">
+        <figure id="fig-mimic" style="text-align: center">
+          <img
+            src="img/arch.png"
+            style="max-width: 100%"
+            alt="VLM Inversion Overview"
+          />
+          <figcaption style="font-size: 13px; margin-top: 10px">
+            Fig. 1: <b>MIMIC</b> inversion pipeline and synthesized outputs for
+            <code>goldfish</code>, <code>golden retriever</code>, and
+            <code>corn</code>. A noisy input is optimized using an aggregated
+            loss that combines adapted cross-entropy \(
+            \mathcal{L}_{\mathrm{SCE}} \), base feature alignment \(
+            \mathcal{L}_{\mathrm{base}} \), and regularizers \( \mathcal{R} \)
+            to ensure semantic fidelity and visual coherence.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+    <br /><br />
+    <div class="container" id="framework">
+      <h1>MIMIC Framework</h1>
+      <br />
+
+      <p class="absfont">
+        <b>Method</b>. In this section, we provide a detailed explanation of our
+        proposed method. An overview of MIMIC is shown in
+        <a href="#fig-mimic">Fig. 1</a>. We initialize an
+        <span style="color: #b491c8"><b>updatable input</b></span> \(
+        \widehat{\mathbf{v}} \in \mathbb{R}^{C \times H \times W} \) with \(C\)
+        channels, \(H\) height, and \(W\) width. As VLMs can respond to queries
+        given a multimodal context window, we create a text prompt template \(
+        \mathbf{t} \) for a concept we want to visualize. For example:
+        <i>What is shown in the picture: a.</i> <code>[target]</code> concept,
+        <i>or b.</i> <code>[negative]</code> concept — which can be, e.g.,
+        <i>a. tiger</i> and <i>b. dog</i>.
+      </p>
+
+      <p class="absfont">
+        In transformer-based VLMs, text is tokenized by \(
+        \mathcal{G}(\mathbf{t}) \) into a sequence of embeddings. Similarly,
+        vision input \( \widehat{\mathbf{v}} \) is encoded by \(
+        \mathcal{E}_{\theta_e} \) to embeddings \(
+        \mathcal{E}_{\theta_e}(\widehat{\mathbf{v}}) \in \mathbb{R}^{D \times
+        \Omega} \), with \( D \) image tokens and \(\Omega\) channels. Both are
+        combined into a concatenated input: $$ \widehat{\mathbf{x}} = [
+        \mathcal{G}(\mathbf{t}), \mathcal{E}_{\theta_e}(\widehat{\mathbf{v}}) ]
+        $$
+      </p>
+
+      <p class="absfont">
+        <b>VLM Inversion</b>. The backbone LLM model \( \Phi_{\theta_\phi} \)
+        attends to the multimodal prompt \( \widehat{\mathbf{x}} \). The final
+        layer projects the embeddings to a probabilistic distribution: $$
+        \widehat{\mathbf{y}} = s(\Phi_{\theta_\phi}(\widehat{\mathbf{x}})) $$
+        where \( s \) is a softmax function over a fixed-length dictionary.
+      </p>
+
+      <p class="absfont">
+        Due to the LLM’s autoregressive nature, generated logits/text often vary
+        in length \( |\widehat{\mathbf{y}}| \), e.g.,
+        <i>The image depicts a tiger lying down</i>. We define an adapted
+        cross-entropy loss \( \mathcal{L}_{SCE} \) given the token index with
+        the highest logit for <code>[target]</code> as: $$
+        \mathcal{L}_{SCE}(\widehat{\mathbf{y}}) = - \sum
+        \mathbf{1}_{[\text{sg}(\widehat{\mathbf{y}}) = \texttt{[target]}]}
+        \log(\widehat{\mathbf{y}}) $$ where \( \mathbf{1}_{[\cdot]} \) is the
+        indicator function, \( \text{sg}(\cdot) \) denotes stop-gradient, and \(
+        |\widehat{\mathbf{y}}| \) is the sequence length.
+      </p>
+
+      <p class="absfont">
+        <b>Base Feature Loss</b>. To align synthesized images with the internal
+        representations of the vision encoder, we extract per-layer features: $$
+        \widehat{\mathbf{z}}_l = \mathcal{E}_{\theta_e}(\widehat{\mathbf{v}}, l)
+        $$ and compute their mean and variance across layers \( l \in \Lambda =
+        \{1,\dots,L\} \) compared to reference target statistics \(
+        \bar{\mathbf{Z}}_l \). The base feature loss is given by: $$
+        \mathcal{L}_{\text{base}} = \sum_{l \in \Lambda} \left( \left\|
+        \mu(\widehat{\mathbf{z}}_l) - \mu(\bar{\mathbf{Z}}_l) \right\|_2^2 +
+        \left\| \sigma(\widehat{\mathbf{z}}_l) - \sigma(\bar{\mathbf{Z}}_l)
+        \right\|_2^2 \right) $$
+      </p>
+
+      <p class="absfont">
+        <b>Triplet Feature Regularizer</b>. As VLMs encode multimodal inputs in
+        complex feature spaces, we enhance optimization with three regularizers
+        inspired by vision-only inversion methods. First, \(
+        \mathcal{R}_{\text{patch}} \) smooths transitions across ViT patch
+        boundaries to improve spatial coherence. Second, we define a composite
+        image prior: $$ \mathcal{R}_{\text{prior}}(\widehat{\mathbf{v}}) =
+        \alpha_1 \mathcal{R}_{TV1}(\widehat{\mathbf{v}}) + \alpha_2
+        \mathcal{R}_{TV2}(\widehat{\mathbf{v}}) + \alpha_3
+        \mathcal{R}_{\ell_2}(\widehat{\mathbf{v}}) $$ which includes total
+        variation (TV) and \( \ell_2 \)-norm penalties for smoothness and range
+        control.
+      </p>
+
+      <p class="absfont">
+        Third, the feature distribution regularizer \( \mathcal{R}_V \)
+        encourages alignment with BN feature statistics from a verifier network
+        \( \mathcal{F} \) trained on a dataset \( \mathcal{V} \). We extract
+        mean and variance across BN layers \( k \in N \), and compute: $$
+        \mathcal{R}_V(\widehat{\mathbf{v}}) = \sum_{k \in N} \left\|
+        \mu_k(\mathcal{F}(\widehat{\mathbf{v}})) -
+        \mathbb{E}_{\mathcal{V}}[\mu_k] \right\|_2^2 + \left\|
+        \sigma_k(\mathcal{F}(\widehat{\mathbf{v}})) -
+        \mathbb{E}_{\mathcal{V}}[\sigma_k] \right\|_2^2 $$
+      </p>
+
+      <p class="absfont">
+        The aggregated regularization objective becomes: $$
+        \mathcal{R}(\widehat{\mathbf{v}}) = \beta_1
+        \mathcal{R}_V(\widehat{\mathbf{v}}) + \beta_2
+        \mathcal{R}_{\text{patch}}(\widehat{\mathbf{v}}) +
+        \mathcal{R}_{\text{prior}}(\widehat{\mathbf{v}}), $$ where \( \beta_1,
+        \beta_2, \alpha_1, \alpha_2, \alpha_3 \) are scaling hyperparameters.
+      </p>
+
+      <p class="absfont">
+        <b>Aggregated Optimization Objective</b>. We iteratively update \(
+        \widehat{\mathbf{v}} \) over steps \( i \rightarrow i+1 \) by minimizing
+        the total objective: $$ \widehat{\mathbf{v}}_{i+1} =
+        \min_{\widehat{\mathbf{v}}_i} \gamma_1 \mathcal{L}_{SCE}
+        \left(s(\Phi_{\theta_\phi}([\mathcal{G}(\mathbf{t}),
+        \mathcal{E}_{\theta_e}(\widehat{\mathbf{v}})]))\right) + \gamma_2
+        \mathcal{L}_{\text{base}} + \mathcal{R}(\widehat{\mathbf{v}}), $$ where
+        \( \gamma_1, \gamma_2 \) are loss scaling factors. This objective guides
+        reconstructions that reveal internal VLM encodings, making their learned
+        concepts visually interpretable.
+      </p>
+    </div>
+    <br /><br />
+
+    <div class="container" id="results">
+      <h1>Results</h1>
+      <br />
+
+      <div class="text-center">
+        <figure id="fig-mimic" style="text-align: center">
+          <img
+            src="img/results.jpg"
+            style="max-width: 100%"
+            alt="VLM Inversion Results"
+          />
+          <figcaption style="font-size: 13px; margin-top: 10px">
+            Fig. 2: <strong>Image and semantic quality</strong> across accuracy,
+            perceptual (IS, LPIPS, FID), and semantic (CLIPScore) metrics. The
+            aggregated objective performs best overall, with each component
+            contributing to improved alignment or image quality.
+            <strong>Bold</strong> and <u>underlined</u> indicate top and
+            second-best results.
+          </figcaption>
+        </figure>
+      </div>
+      <br /><br />
+
+      <p class="absfont">
+        We invert <strong>LLaVA-1.5</strong> that consists of a
+        <strong>CLIP ViT-L/14</strong> vision encoder and a
+        <strong>LLaMA-3-8B-Instruct</strong> language model. Model parameters
+        remain frozen and the updatable input \( \widehat{\mathbf{v}} \in
+        \mathbb{R}^{3 \times 336 \times 336} \), initialized from a Gaussian
+        distribution \( \widehat{\mathbf{v}} \sim \mathcal{N}(0, 1) \), includes
+        the only updatable parameters. We compute \( \mathcal{L}_{\text{base}}
+        \) from ImageNet. Optimization is run for
+        <strong>5000 iterations</strong> per concept using Adam, with a grid
+        search over \( \{a_1, a_2, a_3, \beta_1, \beta_2, \gamma_1, \gamma_2\}
+        \) and fixed random seed \( \in \{0, 1, 2\} \) for reproducibility.
+      </p>
+
+      <p class="absfont">
+        <strong>Baseline results</strong> of our method's performance across
+        configurations are shown in <strong>Table 1</strong>. The aggregated
+        objective achieves a balance across metrics, with
+        <strong>41.25% Top-1 accuracy</strong>, and CLIPScore of
+        <strong>27.42</strong> Structure-based regularizers \(
+        \mathcal{R}_{\text{patch}} \) and \( \mathcal{R}_{\text{prior}} \) show
+        the largest improvements across image quality metrics (IS\(_\infty\),
+        FID\(_\infty\)). Similarly, \( \mathcal{L}_{\text{base}} \) and \(
+        \mathcal{R}_{V} \) primarily improve semantic metrics such as top-1/5
+        accuracy and CLIPScore.
+      </p>
+
+      <p class="absfont">
+        <strong>Qualitative results</strong> show improvements across semantic,
+        perceptual, and distributional metrics with each objective component.
+        Qualitatively, visualizations show that \( \mathcal{R}_{\text{patch}} \)
+        and \( \mathcal{R}_{\text{prior}} \) enhance smoothness and alignment,
+        while \( \mathcal{L}_{\text{base}} \) and \( \mathcal{R}_V \) guide
+        feature-level fidelity. Additional experiments on varying output lengths
+        \( |\widehat{\mathbf{y}}| \) demonstrate that image quality remains
+        visually consistent, confirming the robustness of our approach.
+      </p>
+      <br />
+    </div>
+    <br /><br />
+    <div class="container" id="cite">
+      <h1>Citation</h1>
+      <br />
+      <br />
+      <pre class="div2">
+@article{jain2025mimic,
+  title     = {MIMIC: Multimodal Inversion for Model Interpretation and Conceptualization},
+  author    = {Jain, Animesh and Stergiou, Alexandros},
+  year      = {2025},
+  journal   = {arXiv}
+}</pre
+      >
+    </div>
+    <br /><br />
+    <div class="container" id="contact">
+      <h1>Contact</h1>
+      <br />
+      <p class="absfont">
+        For questions about <span class="mimic">MIMIC,</span> send an email to:
+      </p>
+      <a href="mailto: animesh.jain1203@gmail.com"
+        ><i class="fa-solid fa-paper-plane"></i
+        >&nbsp;animesh.jain1203@gmail.com</a
+      ><br />
+    </div>
+    <div class="row align-items-center">
+      <center>
+        <div class="col thumb d-flex align-items-center">
+          <img
+            class="img-fluid"
+            src="img/UT_Logo_2400_Black_EN.png"
+            style="max-width: 30%"
+            alt=""
+          />
+        </div>
+      </center>
+    </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script
+      src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+      integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"
+      integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
+      integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>
