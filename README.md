@@ -11,8 +11,7 @@
 <p align="center"></p>
 <p align="center">
   <a href="https://anaekin.github.io/MIMIC">Project Page 🌐</a> |
-  <a href="https://arxiv.org/abs/XXXX.XXXXX">arXiv 📄</a> |
-  <a href="https://github.com/anaekin/MIMIC">Code 💻</a>
+  <a href="https://arxiv.org/abs/XXXX.XXXXX">arXiv 📄</a>
 </p>
 
 <p align="center">

@@ -962,111 +962,90 @@
       <br />
 
       <p class="absfont">
-        <b>Method</b>. In this section, we provide a detailed explanation of our
-        proposed method. An overview of MIMIC is shown in
-        <a href="#fig-mimic">Fig. 1</a>. We initialize an
-        <span style="color: #b491c8"><b>updatable input</b></span> \(
-        \widehat{\mathbf{v}} \in \mathbb{R}^{C \times H \times W} \) with \(C\)
-        channels, \(H\) height, and \(W\) width. As VLMs can respond to queries
-        given a multimodal context window, we create a text prompt template \(
-        \mathbf{t} \) for a concept we want to visualize. For example:
-        <i>What is shown in the picture: a.</i> <code>[target]</code> concept,
-        <i>or b.</i> <code>[negative]</code> concept — which can be, e.g.,
-        <i>a. tiger</i> and <i>b. dog</i>.
-      </p>
-
-      <p class="absfont">
-        In transformer-based VLMs, text is tokenized by \(
+        <b>Method</b>. We initialize an
+        <span style="color: #b49"><b>updatable input</b></span> \(
+        \color{#B49}\widehat{\mathbf{v}}\color{#000} \in \mathbb{R}^{C \times H
+        \times W} \) with \(C\) channels, \(H\) height, and \(W\) width. As VLMs
+        can respond to queries given a multimodal context window, we create a
+        text prompt template \( \mathbf{t} \) for a concept we want to
+        visualize. For example: <i>What is shown in the picture: a.</i>
+        <code>[target]</code> concept, <i>or b.</i>
+        <code>[negative]</code> concept — which can be, e.g.,
+        <i>a. tiger</i> and <i>b. dog</i>. Text is tokenized by \(
         \mathcal{G}(\mathbf{t}) \) into a sequence of embeddings. Similarly,
-        vision input \( \widehat{\mathbf{v}} \) is encoded by \(
+        vision input \( \color{#B49}\widehat{\mathbf{v}} \) is encoded by \(
         \mathcal{E}_{\theta_e} \) to embeddings \(
-        \mathcal{E}_{\theta_e}(\widehat{\mathbf{v}}) \in \mathbb{R}^{D \times
-        \Omega} \), with \( D \) image tokens and \(\Omega\) channels. Both are
-        combined into a concatenated input: $$ \widehat{\mathbf{x}} = [
-        \mathcal{G}(\mathbf{t}), \mathcal{E}_{\theta_e}(\widehat{\mathbf{v}}) ]
-        $$
+        \mathcal{E}_{\theta_e}(\color{#B49}\widehat{\mathbf{v}}\color{#000}) \in
+        \mathbb{R}^{D \times \Omega} \), with \( D \) image tokens and
+        \(\Omega\) channels. Both are combined into a concatenated input: \(
+        \color{#b49} \widehat{\mathbf{x}}\color{#000} = [
+        \mathcal{G}(\mathbf{t}),
+        \mathcal{E}_{\theta_e}(\color{#B49}\widehat{\mathbf{v}}\color{#000}) ]
+        \)
       </p>
 
       <p class="absfont">
         <b>VLM Inversion</b>. The backbone LLM model \( \Phi_{\theta_\phi} \)
-        attends to the multimodal prompt \( \widehat{\mathbf{x}} \). The final
-        layer projects the embeddings to a probabilistic distribution: $$
-        \widehat{\mathbf{y}} = s(\Phi_{\theta_\phi}(\widehat{\mathbf{x}})) $$
-        where \( s \) is a softmax function over a fixed-length dictionary.
+        attends to the multimodal prompt \( \color{#b49}
+        \widehat{\mathbf{x}}\color{#000} \). to a probabilistic distribution
+        over a fixed-length dictionary \( \color{#b49}
+        \widehat{\mathbf{y}}\color{#000} = s(\Phi_{\theta_\phi}(\color{#b49}
+        \widehat{\mathbf{x}}\color{#000})) \)
       </p>
 
       <p class="absfont">
-        Due to the LLM’s autoregressive nature, generated logits/text often vary
-        in length \( |\widehat{\mathbf{y}}| \), e.g.,
-        <i>The image depicts a tiger lying down</i>. We define an adapted
-        cross-entropy loss \( \mathcal{L}_{SCE} \) given the token index with
-        the highest logit for <code>[target]</code> as: $$
-        \mathcal{L}_{SCE}(\widehat{\mathbf{y}}) = - \sum
-        \mathbf{1}_{[\text{sg}(\widehat{\mathbf{y}}) = \texttt{[target]}]}
-        \log(\widehat{\mathbf{y}}) $$ where \( \mathbf{1}_{[\cdot]} \) is the
-        indicator function, \( \text{sg}(\cdot) \) denotes stop-gradient, and \(
-        |\widehat{\mathbf{y}}| \) is the sequence length.
+        We define an adapted cross-entropy loss \( \mathcal{L}_{SCE} \) given
+        the token index with the highest logit for <code>[target]</code> as: $$
+        \mathcal{L}_{SCE}(\color{#b49} \widehat{\mathbf{y}}\color{#000}) = -
+        \sum \mathbf{1}_{[\text{sg}(\widehat{\mathbf{y}}) = \texttt{[target]}]}
+        \log(\color{#b49} \widehat{\mathbf{y}}\color{#000}) $$ where \(
+        \mathbf{1}_{[\cdot]} \) is the indicator function, \( \text{sg}(\cdot)
+        \) denotes stop-gradient.
       </p>
 
       <p class="absfont">
         <b>Base Feature Loss</b>. To align synthesized images with the internal
-        representations of the vision encoder, we extract per-layer features: $$
-        \widehat{\mathbf{z}}_l = \mathcal{E}_{\theta_e}(\widehat{\mathbf{v}}, l)
-        $$ and compute their mean and variance across layers \( l \in \Lambda =
-        \{1,\dots,L\} \) compared to reference target statistics \(
-        \bar{\mathbf{Z}}_l \). The base feature loss is given by: $$
-        \mathcal{L}_{\text{base}} = \sum_{l \in \Lambda} \left( \left\|
-        \mu(\widehat{\mathbf{z}}_l) - \mu(\bar{\mathbf{Z}}_l) \right\|_2^2 +
-        \left\| \sigma(\widehat{\mathbf{z}}_l) - \sigma(\bar{\mathbf{Z}}_l)
-        \right\|_2^2 \right) $$
+        representations of the vision encoder, we extract per-layer features: \(
+        \widehat{\mathbf{z}}_l =
+        \mathcal{E}_{\theta_e}(\color{#B49}\widehat{\mathbf{v}}\color{#000}, l)
+        \) and compute their mean and variance across layers \( l \in \Lambda =
+        \{1,\dots,L\} \) compared to reference pre-computed target statistics \(
+        \bar{\mathbf{Z}}_l \).
       </p>
 
       <p class="absfont">
-        <b>Triplet Feature Regularizer</b>. As VLMs encode multimodal inputs in
-        complex feature spaces, we enhance optimization with three regularizers
-        inspired by vision-only inversion methods. First, \(
-        \mathcal{R}_{\text{patch}} \) smooths transitions across ViT patch
-        boundaries to improve spatial coherence. Second, we define a composite
-        image prior: $$ \mathcal{R}_{\text{prior}}(\widehat{\mathbf{v}}) =
-        \alpha_1 \mathcal{R}_{TV1}(\widehat{\mathbf{v}}) + \alpha_2
-        \mathcal{R}_{TV2}(\widehat{\mathbf{v}}) + \alpha_3
-        \mathcal{R}_{\ell_2}(\widehat{\mathbf{v}}) $$ which includes total
-        variation (TV) and \( \ell_2 \)-norm penalties for smoothness and range
-        control.
-      </p>
-
-      <p class="absfont">
-        Third, the feature distribution regularizer \( \mathcal{R}_V \)
-        encourages alignment with BN feature statistics from a verifier network
-        \( \mathcal{F} \) trained on a dataset \( \mathcal{V} \). We extract
-        mean and variance across BN layers \( k \in N \), and compute: $$
-        \mathcal{R}_V(\widehat{\mathbf{v}}) = \sum_{k \in N} \left\|
-        \mu_k(\mathcal{F}(\widehat{\mathbf{v}})) -
-        \mathbb{E}_{\mathcal{V}}[\mu_k] \right\|_2^2 + \left\|
-        \sigma_k(\mathcal{F}(\widehat{\mathbf{v}})) -
-        \mathbb{E}_{\mathcal{V}}[\sigma_k] \right\|_2^2 $$
-      </p>
-
-      <p class="absfont">
-        The aggregated regularization objective becomes: $$
-        \mathcal{R}(\widehat{\mathbf{v}}) = \beta_1
-        \mathcal{R}_V(\widehat{\mathbf{v}}) + \beta_2
-        \mathcal{R}_{\text{patch}}(\widehat{\mathbf{v}}) +
-        \mathcal{R}_{\text{prior}}(\widehat{\mathbf{v}}), $$ where \( \beta_1,
-        \beta_2, \alpha_1, \alpha_2, \alpha_3 \) are scaling hyperparameters.
+        <b>Triplet Feature Regularizer</b>. We enhance optimization with three
+        regularizers inspired by vision-only inversion methods to smooths
+        transitions across patch boundaries with a composite image prior \(
+        \mathcal{R}_{\text{prior}}(\color{#B49}\widehat{\mathbf{v}}\color{#000})
+        \) which includes total variation (TV) and \( \ell_2 \)-norm penalties
+        for smoothness and range control. We also include a feature distribution
+        regularizer \( \mathcal{R}_V \) encourages alignment with BN feature
+        statistics from a verifier network \( \mathcal{F} \). The aggregated
+        regularization objective becomes: $$
+        \mathcal{R}(\color{#B49}\widehat{\mathbf{v}}\color{#000}) = \beta_1
+        \mathcal{R}_V(\color{#B49}\widehat{\mathbf{v}}\color{#000}) + \beta_2
+        \mathcal{R}_{\text{patch}}(\color{#B49}\widehat{\mathbf{v}}\color{#000})
+        +
+        \mathcal{R}_{\text{prior}}(\color{#B49}\widehat{\mathbf{v}}\color{#000}),
+        $$ where \( \beta_1, \beta_2, \alpha_1, \alpha_2, \alpha_3 \) are
+        scaling hyperparameters.
       </p>
 
       <p class="absfont">
         <b>Aggregated Optimization Objective</b>. We iteratively update \(
-        \widehat{\mathbf{v}} \) over steps \( i \rightarrow i+1 \) by minimizing
-        the total objective: $$ \widehat{\mathbf{v}}_{i+1} =
+        \color{#B49}\widehat{\mathbf{v}}\color{#000} \) over steps \( i
+        \rightarrow i+1 \) by minimizing the total objective: $$
+        \color{#B49}\widehat{\mathbf{v}}\color{#000}_{i+1} =
         \min_{\widehat{\mathbf{v}}_i} \gamma_1 \mathcal{L}_{SCE}
         \left(s(\Phi_{\theta_\phi}([\mathcal{G}(\mathbf{t}),
-        \mathcal{E}_{\theta_e}(\widehat{\mathbf{v}})]))\right) + \gamma_2
-        \mathcal{L}_{\text{base}} + \mathcal{R}(\widehat{\mathbf{v}}), $$ where
-        \( \gamma_1, \gamma_2 \) are loss scaling factors. This objective guides
-        reconstructions that reveal internal VLM encodings, making their learned
-        concepts visually interpretable.
+        \mathcal{E}_{\theta_e}(\color{#b49}
+        \widehat{\mathbf{v}}\color{#000})]))\right) + \gamma_2
+        \mathcal{L}_{\text{base}} + \mathcal{R}(\color{#b49}
+        \widehat{\mathbf{v}}\color{#000}), $$ where \( \gamma_1, \gamma_2 \) are
+        loss scaling factors. This objective guides reconstructions that reveal
+        internal VLM encodings, making their learned concepts visually
+        interpretable.
       </p>
     </div>
     <br /><br />
@@ -1097,39 +1076,22 @@
       <p class="absfont">
         We invert <strong>LLaVA-1.5</strong> that consists of a
         <strong>CLIP ViT-L/14</strong> vision encoder and a
-        <strong>LLaMA-3-8B-Instruct</strong> language model. Model parameters
-        remain frozen and the updatable input \( \widehat{\mathbf{v}} \in
-        \mathbb{R}^{3 \times 336 \times 336} \), initialized from a Gaussian
-        distribution \( \widehat{\mathbf{v}} \sim \mathcal{N}(0, 1) \), includes
-        the only updatable parameters. We compute \( \mathcal{L}_{\text{base}}
-        \) from ImageNet. Optimization is run for
-        <strong>5000 iterations</strong> per concept using Adam, with a grid
-        search over \( \{a_1, a_2, a_3, \beta_1, \beta_2, \gamma_1, \gamma_2\}
-        \) and fixed random seed \( \in \{0, 1, 2\} \) for reproducibility.
+        <strong>LLaMA-3-8B-Instruct</strong> language model.
       </p>
 
       <p class="absfont">
         <strong>Baseline results</strong> of our method's performance across
-        configurations are shown in <strong>Table 1</strong>. The aggregated
-        objective achieves a balance across metrics, with
-        <strong>41.25% Top-1 accuracy</strong>, and CLIPScore of
-        <strong>27.42</strong> Structure-based regularizers \(
-        \mathcal{R}_{\text{patch}} \) and \( \mathcal{R}_{\text{prior}} \) show
-        the largest improvements across image quality metrics (IS\(_\infty\),
-        FID\(_\infty\)). Similarly, \( \mathcal{L}_{\text{base}} \) and \(
-        \mathcal{R}_{V} \) primarily improve semantic metrics such as top-1/5
-        accuracy and CLIPScore.
+        configurations are shown that the aggregated objective achieves a
+        balance across metrics, with <strong>41.25% Top-1 accuracy</strong>, and
+        CLIPScore of <strong>27.42</strong>.
       </p>
 
       <p class="absfont">
         <strong>Qualitative results</strong> show improvements across semantic,
         perceptual, and distributional metrics with each objective component.
-        Qualitatively, visualizations show that \( \mathcal{R}_{\text{patch}} \)
-        and \( \mathcal{R}_{\text{prior}} \) enhance smoothness and alignment,
-        while \( \mathcal{L}_{\text{base}} \) and \( \mathcal{R}_V \) guide
-        feature-level fidelity. Additional experiments on varying output lengths
-        \( |\widehat{\mathbf{y}}| \) demonstrate that image quality remains
-        visually consistent, confirming the robustness of our approach.
+        Additional experiments on varying output lengths \( |\color{#b49}
+        \widehat{\mathbf{y}}\color{#000}| \) demonstrate that image quality
+        remains visually consistent, confirming the robustness of our approach.
       </p>
       <br />
     </div>
