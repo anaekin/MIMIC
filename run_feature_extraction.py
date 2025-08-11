@@ -132,6 +132,12 @@ def run(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--seed",
+        default=0,
+        type=int,
+        help="Seed for reproducibility. Default: 0",
+    )
+    parser.add_argument(
         "--vlm_checkpoint",
         type=str,
         required=True,
