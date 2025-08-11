@@ -1,0 +1,190 @@
+[
+  {
+    "class_index": 1,
+    "class_name": "Goldfish",
+    "chat_sequence": [
+      [
+        "Choose the fish shown in the image: Goldfish, Shark or Whale?",
+        "Goldfish"
+      ]
+    ]
+  },
+  {
+    "class_index": 207,
+    "class_name": "Golden retriever",
+    "chat_sequence": [
+      [
+        "Choose the animal in the image: Golden retriever, Labrador retriever or German shepherd?",
+        "Golden retriever"
+      ]
+    ]
+  },
+  {
+    "class_index": 292,
+    "class_name": "Tiger",
+    "chat_sequence": [
+      ["Choose the animal in the image: Tiger, Leopard or Lion?", "Tiger"]
+    ]
+  },
+  {
+    "class_index": 340,
+    "class_name": "Zebra",
+    "chat_sequence": [
+      ["Choose the animal in the image: Zebra, Horse or Giraffe?", "Zebra"]
+    ]
+  },
+  {
+    "class_index": 886,
+    "class_name": "Vending Machine",
+    "chat_sequence": [
+      [
+        "Choose the machine in the image: Vending Machine, Crane or ATM Machine?",
+        "Vending Machine"
+      ]
+    ]
+  },
+  {
+    "class_index": 604,
+    "class_name": "Hourglass",
+    "chat_sequence": [
+      [
+        "Choose the object shown in the image: Hourglass, Wristwatch or Wall clock?",
+        "Hourglass"
+      ]
+    ]
+  },
+  {
+    "class_index": 605,
+    "class_name": "iPod",
+    "chat_sequence": [
+      [
+        "Choose the device shown in the image: iPod, Telephone or Printer?",
+        "iPod"
+      ]
+    ]
+  },
+  {
+    "class_index": 920,
+    "class_name": "Traffic light",
+    "chat_sequence": [
+      [
+        "Choose the object shown in the image: Traffic light, Stop sign or Fire hydrant?",
+        "Traffic light"
+      ]
+    ]
+  },
+  {
+    "class_index": 889,
+    "class_name": "Violin",
+    "chat_sequence": [
+      [
+        "Choose the musical instrument in the image: Violin, Guitar or Piano?",
+        "Violin"
+      ]
+    ]
+  },
+  {
+    "class_index": 900,
+    "class_name": "Water tower",
+    "chat_sequence": [
+      [
+        "Choose the structure in the image: Water tower, Pillar or Bridge?",
+        "Water tower"
+      ]
+    ]
+  },
+  {
+    "class_index": 847,
+    "class_name": "Army tank",
+    "chat_sequence": [
+      ["Choose the vehicle in the image: Army tank, Truck or Bus?", "Army tank"]
+    ]
+  },
+  {
+    "class_index": 954,
+    "class_name": "Banana",
+    "chat_sequence": [
+      ["Choose the fruit in the image: Banana, Orange or Apple?", "Banana"]
+    ]
+  },
+  {
+    "class_index": 808,
+    "class_name": "Sombrero",
+    "chat_sequence": [
+      [
+        "Choose the type of hat in the image: Sombrero, Fedora or Cowboy hat?",
+        "Sombrero"
+      ]
+    ]
+  },
+  {
+    "class_index": 417,
+    "class_name": "Hot air balloon",
+    "chat_sequence": [
+      [
+        "Choose the type of aircraft shown in the image: Hot air balloon, Airplane or Helicopter?",
+        "Hot air balloon"
+      ]
+    ]
+  },
+  {
+    "class_index": 425,
+    "class_name": "Barn",
+    "chat_sequence": [
+      [
+        "Choose the structure shown in the image: Barn, House or Apartment?",
+        "Barn"
+      ]
+    ]
+  },
+  {
+    "class_index": 440,
+    "class_name": "Beer bottle",
+    "chat_sequence": [
+      [
+        "Choose the object shown in the image: Beer bottle, Jug or Glass?",
+        "Beer bottle"
+      ]
+    ]
+  },
+  {
+    "class_index": 570,
+    "class_name": "Gas mask",
+    "chat_sequence": [
+      [
+        "Choose the mask shown in the image: Gas mask, Surgical mask or Safety helmet?",
+        "Gas mask"
+      ]
+    ]
+  },
+  {
+    "class_index": 711,
+    "class_name": "Perfume",
+    "chat_sequence": [
+      [
+        "Choose the glass bottle shown in the image: Perfume, Lotion or Deodorant?",
+        "Perfume"
+      ]
+    ]
+  },
+  {
+    "class_index": 932,
+    "class_name": "Pretzel",
+    "chat_sequence": [
+      [
+        "Choose the snack shown in the image: Pretzel, Fries or Potato Chips?",
+        "Pretzel"
+      ]
+    ]
+  },
+  {
+    "class_index": 987,
+    "class_name": "Corn",
+    "chat_sequence": [
+      [
+        "Choose the plant shown in the image: Corn, Tomtato or Blueberry?",
+        "Corn"
+      ]
+    ]
+  }
+]

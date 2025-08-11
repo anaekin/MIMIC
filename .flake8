@@ -1,0 +1,52 @@
+[flake8]
+# Max line length (can match black's 88 if you're using black too)
+max-line-length = 120
+
+# Exclude common folders that don't need linting
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    .venv,
+    venv,
+    .eggs,
+    *.egg-info,
+    .mypy_cache,
+    *generations*/,
+    target_features/,
+    output*/,
+    result*/,
+    images/,
+    *logs*/,
+    models/,
+    wandb/,
+    tests/,
+    *grid_search*/,
+    *ablations*/,
+    studies/,
+    *.pt,
+
+# Enable or ignore specific error codes
+# For example, ignore line break before binary operator (W503)
+ignore =
+    E203,
+    W503,
+    E501,
+    C901,
+    F401,
+    E266,
+    E401,
+    E262,
+    F541,
+    E402
+
+# Show the source code for each issue (optional)
+show-source = true
+
+# Maximum allowed McCabe complexity (optional)
+max-complexity = 10
+
+# Enable specific plugins, if installed
+# For example, flake8-docstrings (D codes), flake8-bugbear (B codes)
+select = C,E,F,W,B,B950
