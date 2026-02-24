@@ -2,6 +2,7 @@ import sys
 from transformers import (
     AutoProcessor,
     AutoModelForPreTraining,
+    AutoModelForVision2Seq,
 )
 import torch
 from PIL import Image
@@ -26,13 +27,15 @@ def pixel_values_to_pil_image(pv):
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-vlm_checkpoint = "./models/llava_3_8b_cache_merged"
+# vlm_checkpoint = "./models/llava_3_8b_cache_merged"
+vlm_checkpoint = "llava-hf/llava-1.5-7b-hf"
 vlm_processor = AutoProcessor.from_pretrained(vlm_checkpoint)
 vlm_processor.image_processor.size = {"shortest_edge": 336}
 tokenizer = vlm_processor.tokenizer
 tokenizer.padding_side = "left"
 
-vlm_model = AutoModelForPreTraining.from_pretrained(vlm_checkpoint)
+# vlm_model = AutoModelForPreTraining.from_pretrained(vlm_checkpoint)
+vlm_model = AutoModelForVision2Seq.from_pretrained(vlm_checkpoint)
 vlm_model = vlm_model.to(device=device)
 vlm_model.eval()
 

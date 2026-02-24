@@ -52,9 +52,6 @@ cd MIMIC
 # Create and activate conda environment
 conda env create -f environment.yml
 conda activate mimic
-
-# Install any additional dependencies
-pip install -r requirements.txt
 ```
 
 ## Target Models
