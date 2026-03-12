@@ -5,41 +5,31 @@
 import argparse
 import gc
 import sys
-import random
 import os
-import traceback
-import numpy as np
 import time
-import json
 
 import torch
-
-from transformers import AutoProcessor, AutoModelForPreTraining
+import torch.nn as nn
+from safetensors.torch import save_file
+from tqdm import tqdm
 
 from accelerate.utils import set_seed
 
-from helpers.utils import get_target_features_filepath, load_json
+from helpers.utils import load_vlm, VLM_CHOICES, VLM_LAYER_PATTERNS, get_image_dataloader
 from helpers.hooks import FeatureStatsHookManager
-from custom_datasets.imagenet import ImageNetDataloader, ImageNetDataset
-from helpers.feature_extractor import FeatureExtractor
-
 
 # Reproducibility
 def set_reproducibility(seed=0):
     """
     Set the random seed for reproducibility.
     """
-    os.environ["PYTHONHASHSEED"] = str(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
     set_seed(seed, device_specific=False)
-
-    torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
-
-# Constants
-PROMPT_FILEPATH = "./data/prompts.json"
-PROMPT_LISTS = load_json(PROMPT_FILEPATH)
-AVALIABLE_CLASSES = [c["class_index"] for c in PROMPT_LISTS]
+    torch.backends.cudnn.deterministic = True
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    os.environ["PYTHONHASHSEED"] = str(seed)
 
 
 def get_precision_settings(fp16):
@@ -47,128 +37,204 @@ def get_precision_settings(fp16):
         if torch.cuda.is_bf16_supported():
             return torch.bfloat16, "bf16"
         else:
+            print("Warning: BF16 not supported, using FP16")
             return torch.float16, "fp16"
     else:
         return torch.float32, "no"
 
 
+class RunningStats:
+    """Computes running mean and variance using Welford's algorithm or simple accumulation."""
+    def __init__(self, shape, device, dtype):
+        self.n = 0
+        self.mean = torch.zeros(shape, device=device, dtype=dtype)
+        
+        self.sum_mean = torch.zeros(shape, device=device, dtype=dtype)
+        self.sum_var = torch.zeros(shape, device=device, dtype=dtype)
+
+    def update(self, batch_means, batch_vars):
+        """
+        batch_means: [B, D]
+        batch_vars: [B, D]
+        """
+        batch_size = batch_means.shape[0]
+        self.n += batch_size
+        self.sum_mean += batch_means.sum(dim=0)
+        self.sum_var += batch_vars.sum(dim=0)
+
+    def get_stats(self):
+        if self.n == 0:
+            return self.mean, self.mean # zeros
+        return self.sum_mean / self.n, self.sum_var / self.n
+
+
 def run(args):
     data_type, _ = get_precision_settings(args.fp16)
-    dataset_dir = args.dataset_dir
-
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    
+    # Setup Output Directory
+    dataset_name = args.images_dir.rstrip('/').split('/')[-1]
+    output_dir = os.path.join(args.target_dir, args.vlm, dataset_name)
+    os.makedirs(output_dir, exist_ok=True)
+    print(f"Output directory: {output_dir}")
 
-    # Paths and experiment/data config
-    target_class_prompts = (
-        [d for d in PROMPT_LISTS if d["class_index"] == args.target_class]
-        if args.target_class is not None
-        else PROMPT_LISTS
-    )
+    # Load Model
+    print(f"Loading {args.vlm}...")
+    vlm_processor, _, model = load_vlm(args.vlm)
+    model.config.use_cache = False
+    model.eval()
+    
+    # Identify Vision Tower
+    vision_tower = None
+    if hasattr(model, 'vision_tower'):
+        vision_tower = model.vision_tower
+    elif hasattr(model, 'visual'):
+        vision_tower = model.visual
+    elif hasattr(model, 'model'):
+         if hasattr(model.model, 'vision_tower'):
+             vision_tower = model.model.vision_tower
+         elif hasattr(model.model, 'visual'):
+             vision_tower = model.model.visual
+    
+    if vision_tower is None:
+        print("Could not identify vision tower automatically. Using full model with hack.")
+        print("Dumping modules...")
+        for n, m in model.named_children():
+            print(n)
+        sys.exit("Vision tower not found. Update script.")
 
-    os.makedirs(args.target_features_dir, exist_ok=True)
+    # Move vision tower to device
+    vision_tower = vision_tower.to(device=device, dtype=data_type)
+    
+    layer_regex = VLM_LAYER_PATTERNS.get(args.vlm)
+    if not layer_regex:
+        sys.exit(f"No regex pattern defined for {args.vlm}")
 
-    print("Loading model for feature extraction...")
+    # Adjust Regex for Vision Tower only
+    
+    prefixes_to_strip = [r"vision_tower\.", r"visual\."]
+    for prefix in prefixes_to_strip:
+        if layer_regex.startswith(prefix):
+            layer_regex = layer_regex[len(prefix):] # This is rough, as it's a regex 
+            pass
+    
+    clean_regex = layer_regex.replace(r"vision_tower\.", "").replace(r"visual\.", "")
+    print(f"Original Regex: {layer_regex}")
+    print(f"Vision-Tower Regex: {clean_regex}")
 
-    vlm_checkpoint = args.vlm_checkpoint
-    vlm_processor = AutoProcessor.from_pretrained(vlm_checkpoint)
-    vlm_model = AutoModelForPreTraining.from_pretrained(vlm_checkpoint)
-    # vlm_model.gradient_checkpointing_enable()
-    vlm_model.config.use_cache = False
-    vlm_processor.patch_size = vlm_model.config.vision_config.patch_size
-    vlm_processor.image_processor.size = {
-        "shortest_edge": 336
-    }  # Needs to be fixed for LLaVA
-    vlm_model = vlm_model.to(device=device, dtype=data_type)
-    vlm_model.eval()
+    # Setup Hooks on Vision Tower
+    hook_manager = FeatureStatsHookManager(model=vision_tower, model_type="vlm", layer_regex=clean_regex)
+    feature_hooks = hook_manager.register_hooks()
+    print(f"Registered {len(feature_hooks)} feature hooks.")
+    
+    if len(feature_hooks) == 0:
+        print("Use Inspect Layers script to check module names of:")
+        for name, _ in vision_tower.named_modules():
+            print(name)
+            break
+        sys.exit("No hooks registered! Check regex.")
 
-    base_hook_manager = FeatureStatsHookManager(model=vlm_model, model_type="vlm")
-    base_feature_hooks = base_hook_manager.register_hooks()
+    # Dataloader
+    # Return PIL images so we can use processor correctly for complex models like Qwen
+    dataloader = get_image_dataloader(images_dir=args.images_dir, batch_size=args.batch_size, image_size=336, return_pil=True)
+    print(f"Found {len(dataloader.dataset)} images.")
+
+    # Running Stats Holders
+    # We can't init until we know the dimension D.
+    stats_holders = [None] * len(feature_hooks)
 
     print("\n------------ Feature extraction started ------------")
     start_time = time.time()
-    tfe = FeatureExtractor(
-        vlm_model=vlm_model,
-        vlm_processor=vlm_processor,
-        feature_hooks=base_feature_hooks,
-        device=device,
-        data_type=data_type,
-    )
-    for prompt in target_class_prompts:
-        target_class = prompt["class_index"]
-        target_features_filepath = get_target_features_filepath(
-            args.target_features_dir, target_class
-        )
-        if not os.path.exists(target_features_filepath):
-            print(
-                f"Target feature stats not found at {target_features_filepath}. Computing..."
-            )
+    
+    pbar = tqdm(enumerate(dataloader), total=len(dataloader), desc="Extracting features")
+    
+    with torch.no_grad():
+        for i, batch_images in pbar:
+            # batch_images is a list of PIL images
+            try:
+                inputs = vlm_processor(images=batch_images, text=[""]*len(batch_images), return_tensors="pt")
+            except Exception:
+                # Fallback if text is required strictly
+                inputs = vlm_processor(images=batch_images, return_tensors="pt")
 
-            dataset = ImageNetDataset(
-                class_index=target_class,
-                root_dir=dataset_dir,
-                split="train",
-            )
-            dataloader = ImageNetDataloader(dataset=dataset)
-            features = tfe.compute(dataloader=dataloader)
+            inputs = inputs.to(device=device, dtype=data_type)
 
-            # Save target feature stats only once on main process
-            torch.save(features, target_features_filepath)
-            print(f"Target features computed and saved to {target_features_filepath}")
-            base_hook_manager.reset_hooks()
-        else:
-            print(
-                f"Target feature stats already exist at {target_features_filepath}. Skipping computation."
-            )
+            # Extract arguments for vision tower
+            forward_kwargs = {}
+            if "qwen" in args.vlm.lower():
+                 if hasattr(inputs, "pixel_values"): forward_kwargs["hidden_states"] = inputs.pixel_values
+                 if hasattr(inputs, "image_grid_thw"): forward_kwargs["grid_thw"] = inputs.image_grid_thw
+            else:
+                 if hasattr(inputs, "pixel_values"): forward_kwargs["pixel_values"] = inputs.pixel_values
+                 elif hasattr(inputs, "images"): forward_kwargs["images"] = inputs.images
+            
+            # Forward pass (Vision Tower only)
+            try:
+                if forward_kwargs:
+                   _ = vision_tower(**forward_kwargs)
+                else:
+                   # Try passing directly if processor output weird
+                    _ = vision_tower(inputs)
+            except Exception as e:
+                print(f"Error during forward pass: {e}")
+                sys.exit(1)
 
+            # Collect Stats
+            for h_idx, hook in enumerate(feature_hooks):
+                if hook.data and hook.data.get("r_feature") is not None:
+                    # [2, B, D]
+                    mean_b, var_b = hook.data["r_feature"]
+                    
+                    # Init holder if needed
+                    if stats_holders[h_idx] is None:
+                        D = mean_b.shape[-1]
+                        stats_holders[h_idx] = RunningStats([D], device, dtype=torch.float32) # Calc in fp32
+                    
+                    # Update
+                    stats_holders[h_idx].update(mean_b.to(torch.float32), var_b.to(torch.float32))
+                    
+                    # Clear hook data to save memory
+                    hook.data = None
+            
+            # Update progress bar with stats from the last registered layer (usually deepest)
+            if stats_holders and stats_holders[-1] is not None:
+                curr_mean, curr_var = stats_holders[-1].get_stats()
+                disp_mean = curr_mean.mean().item()
+                disp_var = curr_var.mean().item()
+                pbar.set_postfix_str(f"Mean: {disp_mean:.2e}, Var: {disp_var:.2e}")
+    
     end_time = time.time()
-    print("\n------------ Feature extraction ended ------------")
-    print(f"Training time: {(end_time - start_time) / 60:.2f} minutes")
+    print(f"Extraction finished in {(end_time - start_time):.2f}s")
 
-    del tfe
-    torch.cuda.empty_cache()
+    # Save Results
+    tensors_to_save = {}
+    for h_idx, hook in enumerate(feature_hooks):
+        if stats_holders[h_idx]:
+            avg_mean, avg_var = stats_holders[h_idx].get_stats()
+            layer_name = hook.name.replace(".", "_") # clean name
+            tensors_to_save[f"{layer_name}.mean"] = avg_mean
+            tensors_to_save[f"{layer_name}.var"] = avg_var
+    
+    save_path = os.path.join(output_dir, "feature_stats.safetensors")
+    save_file(tensors_to_save, save_path)
+    print(f"Saved stats to {save_path}")
+
+    # Cleanup
+    hook_manager.remove_hooks()
     gc.collect()
+    torch.cuda.empty_cache()
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--seed",
-        default=0,
-        type=int,
-        help="Seed for reproducibility. Default: 0",
-    )
-    parser.add_argument(
-        "--vlm_checkpoint",
-        type=str,
-        required=True,
-        help="Path to the VLM checkpoint. Default: ./models/llava_3_8b_cache_merged",
-    )
-    parser.add_argument(
-        "--dataset_dir",
-        type=str,
-        required=True,
-        help="Imagenet dataset directory.",
-    )
-    parser.add_argument(
-        "--fp16",
-        action="store_true",
-        help="Use FP16 for optimization, if selected BF16 will be preferred",
-    )
-    parser.add_argument(
-        "--target_features_dir",
-        type=str,
-        default="./target_features",
-        help="Directory to store computed target feature stats. Default: ./target_features",
-    )
-    parser.add_argument(
-        "--target_class",
-        type=int,
-        default=None,
-        required=False,
-        choices=[c["class_index"] for c in PROMPT_LISTS],
-        help="Target label from the ImageNet classes. If not specified, all classes from './data/prompts.json' will be used",
-    )
+    parser.add_argument("--seed", default=0, type=int, help="Seed for reproducibility.")
+    parser.add_argument("--vlm", type=str, default="llava-llama3-8b", choices=VLM_CHOICES, help="VLM to use.")
+    parser.add_argument("--images_dir", type=str, required=True, help="Directory with images.")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size.")
+    parser.add_argument("--fp16", action="store_true", help="Use FP16.")
+    parser.add_argument("--target_dir", type=str, default="./target_feats", help="Base directory to store target feature stats.")
     args = parser.parse_args()
+    
     set_reproducibility(args.seed)
     run(args)
 

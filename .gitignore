@@ -5,14 +5,18 @@ __pycache__
 *.zip
 *.pkl
 *.pyc
+*.pt.1
+*.pt
+*.pth
+*.safetensors
 
 *generations*/
-target_features/
+/target_features/
 output*/
 result*/
 images/
 logs/
-models/
+/models/
 wandb/
 tests/
 *grid_search*/

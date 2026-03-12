@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
-    <meta name="description" content="" />
+    <meta name="description" content="MIMIC: Multimodal Inversion for Model Interpretation and Conceptualization. Inspect what vision-language models encode by optimizing images against prompt supervision and internal visual features." />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MIMIC</title>
 
@@ -48,6 +48,10 @@
       href="https://maxst.icons8.com/vue-static/landings/line-awesome/line-awesome/1.3.0/css/line-awesome.min.css"
     />
     <link rel="stylesheet" href="./css/design.css" />
+      <link rel="stylesheet" href="./academicons-1.9.4/css/academicons.min.css" />
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+      <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./academicons-1.9.4/css/academicons.min.css" />
 
     <style>
@@ -916,21 +920,7 @@
       <h1>Abstract</h1>
       <br />
       <p class="absfont">
-        Vision Language Models (VLMs) encode multimodal inputs over large,
-        complex, and difficult-to-interpret architectures, which limit
-        transparency and trust. We propose a <b>M</b>ultimodal <b>I</b>nversion
-        for <b>M</b>odel <b>I</b>nterpretation and <b>C</b>onceptualization
-        (<b>MIMIC</b>) framework to visualize the internal representations of
-        VLMs by synthesizing visual concepts corresponding to internal
-        encodings. MIMIC uses a joint VLM-based inversion and a feature
-        alignment objective to account for VLM's autoregressive processing. It
-        additionally includes a triplet of regularizers for spatial alignment,
-        natural image smoothness, and semantic realism. We quantitatively and
-        qualitatively evaluate MIMIC by inverting visual concepts over a range
-        of varying-length free-form VLM output texts. Reported results include
-        both standard visual quality metrics as well as semantic text-based
-        metrics. To the best of our knowledge, this is the first model inversion
-        approach addressing visual interpretations of VLM concepts.
+        Vision Language Models (VLMs) encode multimodal inputs over large, complex, and difficult-to-interpret architectures, which limit transparency and trust. We propose a <b>M</b>ultimodal <b>I</b>nversion for <b>M</b>odel <b>I</b>nterpretation and <b>C</b>onceptualization (<b>MIMIC</b>) framework that inverts the internal encodings of VLMs. MIMIC uses a joint VLM-based inversion and a feature alignment objective to account for VLM's autoregressive processing. It additionally includes a triplet of regularizers for spatial alignment, natural image smoothness, and semantic realism. We evaluate MIMIC both quantitatively and qualitatively by inverting visual concepts across a range of free-form VLM outputs of varying length. Reported results include both standard visual quality metrics and semantic text-based metrics. To the best of our knowledge, this is the first model inversion approach addressing visual interpretations of VLM concepts.
       </p>
     </div>
     <br /><br />
@@ -946,8 +936,8 @@
           />
           <figcaption style="font-size: 13px; margin-top: 10px">
             Fig. 1: <b>MIMIC</b> inversion pipeline and synthesized outputs for
-            <code>goldfish</code>, <code>golden retriever</code>, and
-            <code>corn</code>. A noisy input is optimized using an aggregated
+            <code>tiger shark</code>, <code>castle</code>, <code>cassette player</code>, <code>abacus</code>, <code>carwheel</code>, <code>bald eagle</code>, <code>bakery</code>, <code>academic gown</code>, <code>accordion</code>, <code>carousel</code>, <code>ambulance</code>, and
+            <code>leatherback turtle</code>. A noisy input is optimized using an aggregated
             loss that combines adapted cross-entropy \(
             \mathcal{L}_{\mathrm{SCE}} \), base feature alignment \(
             \mathcal{L}_{\mathrm{base}} \), and regularizers \( \mathcal{R} \)
@@ -966,55 +956,51 @@
         <span style="color: #b49"><b>updatable input</b></span> \(
         \color{#B49}\widehat{\mathbf{v}}\color{#000} \in \mathbb{R}^{C \times H
         \times W} \) with \(C\) channels, \(H\) height, and \(W\) width. As VLMs
-        can respond to queries given a multimodal context window, we create a
-        text prompt template \( \mathbf{t} \) for a concept we want to
-        visualize. For example: <i>What is shown in the picture: a.</i>
+        can respond to queries given a multimodal context window, we include a text prompt template \( \mathbf{t} \) alongside our updatable input. For example: <i>What is shown in the picture: a.</i>
         <code>[target]</code> concept, <i>or b.</i>
-        <code>[negative]</code> concept — which can be, e.g.,
-        <i>a. tiger</i> and <i>b. dog</i>. Text is tokenized by \(
+        <code>[negative]</code> concept. Text is tokenized by \(
         \mathcal{G}(\mathbf{t}) \) into a sequence of embeddings. Similarly,
         vision input \( \color{#B49}\widehat{\mathbf{v}} \) is encoded by \(
-        \mathcal{E}_{\theta_e} \) to embeddings \(
-        \mathcal{E}_{\theta_e}(\color{#B49}\widehat{\mathbf{v}}\color{#000}) \in
+        \mathcal{E} \) to embeddings \(
+        \mathcal{E}(\color{#B49}\widehat{\mathbf{v}}\color{#000};\theta_e) \in
         \mathbb{R}^{D \times \Omega} \), with \( D \) image tokens and
         \(\Omega\) channels. Both are combined into a concatenated input: \(
         \color{#b49} \widehat{\mathbf{x}}\color{#000} = [
         \mathcal{G}(\mathbf{t}),
-        \mathcal{E}_{\theta_e}(\color{#B49}\widehat{\mathbf{v}}\color{#000}) ]
+        \mathcal{E}(\color{#B49}\widehat{\mathbf{v}}\color{#000};\theta_e) ]
         \)
       </p>
 
       <p class="absfont">
-        <b>VLM Inversion</b>. The backbone LLM model \( \Phi_{\theta_\phi} \)
-        attends to the multimodal prompt \( \color{#b49}
-        \widehat{\mathbf{x}}\color{#000} \). to a probabilistic distribution
+        <b>VLM Inversion</b>. The backbone LLM model \( \Phi(\cdot;{\theta_\phi}) \)
+        with \(\theta_\phi\) frozen params, infers \( \color{#b49}
+        \widehat{\mathbf{x}}\color{#000} \) and returns a probabilistic distribution of token logits. Each logit
         over a fixed-length dictionary \( \color{#b49}
-        \widehat{\mathbf{y}}\color{#000} = s(\Phi_{\theta_\phi}(\color{#b49}
-        \widehat{\mathbf{x}}\color{#000})) \)
+        \widehat{\mathbf{y}}\color{#000} = \Phi(\color{#b49}
+        \widehat{\mathbf{x}}\color{#000},\color{#b49}
+        \widehat{\mathbf{y}}_{< i}\color{#000};\theta_\phi) \) where \( \color{#b49} \widehat{\mathbf{y}}_{< i}\color{#000} \) are the previously-generated \(i-1\) logits.
       </p>
 
       <p class="absfont">
         We define an adapted cross-entropy loss \( \mathcal{L}_{SCE} \) given
         the token index with the highest logit for <code>[target]</code> as: $$
         \mathcal{L}_{SCE}(\color{#b49} \widehat{\mathbf{y}}\color{#000}) = -
-        \sum \mathbf{1}_{[\text{sg}(\widehat{\mathbf{y}}) = \texttt{[target]}]}
+        \sum \mathbf{1}{(\text{sg}(\widehat{\mathbf{y}}),i, \texttt{[target]})}
         \log(\color{#b49} \widehat{\mathbf{y}}\color{#000}) $$ where \(
-        \mathbf{1}_{[\cdot]} \) is the indicator function, \( \text{sg}(\cdot)
+        \mathbf{1}(\text{sg}(\widehat{\mathbf{y}}),i,\texttt{[target]}) \) is the indicator function, \( \text{sg}(\cdot)
         \) denotes stop-gradient.
       </p>
 
       <p class="absfont">
         <b>Base Feature Loss</b>. To align synthesized images with the internal
         representations of the vision encoder, we extract per-layer features: \(
-        \widehat{\mathbf{z}}_l =
-        \mathcal{E}_{\theta_e}(\color{#B49}\widehat{\mathbf{v}}\color{#000}, l)
-        \) and compute their mean and variance across layers \( l \in \Lambda =
-        \{1,\dots,L\} \) compared to reference pre-computed target statistics \(
-        \bar{\mathbf{Z}}_l \).
+        \color{#B49} \widehat{\mathbf{z}}\color{#000}_l =
+        \mathcal{E}(\color{#B49}\widehat{\mathbf{v}}\color{#000};\theta_e,< l)
+        \) with the internal representations of the vision encoder, we approximate the manifold's mean \( \mu(\mathcal{Z}_l) \) and variance \( \sigma(\mathcal{Z}_l) \) from \( \texttt{[target]} \) images given \( \theta_{\mathcal{E},l} \) weights, across \( l \in \Lambda = \{1,\dots,L\} \) layers.
       </p>
 
       <p class="absfont">
-        <b>Triplet Feature Regularizer</b>. We enhance optimization with three
+        <b>Regularizers</b>. We enhance optimization with three
         regularizers inspired by vision-only inversion methods to smooths
         transitions across patch boundaries with a composite image prior \(
         \mathcal{R}_{\text{prior}}(\color{#B49}\widehat{\mathbf{v}}\color{#000})
@@ -1034,13 +1020,13 @@
 
       <p class="absfont">
         <b>Aggregated Optimization Objective</b>. We iteratively update \(
-        \color{#B49}\widehat{\mathbf{v}}\color{#000} \) over steps \( i
-        \rightarrow i+1 \) by minimizing the total objective: $$
-        \color{#B49}\widehat{\mathbf{v}}\color{#000}_{i+1} =
-        \min_{\widehat{\mathbf{v}}_i} \gamma_1 \mathcal{L}_{SCE}
-        \left(s(\Phi_{\theta_\phi}([\mathcal{G}(\mathbf{t}),
-        \mathcal{E}_{\theta_e}(\color{#b49}
-        \widehat{\mathbf{v}}\color{#000})]))\right) + \gamma_2
+        \color{#B49}\widehat{\mathbf{v}}\color{#000} \) over steps \( s
+        \rightarrow s+1 \) by minimizing the total objective: $$
+        \color{#B49}\widehat{\mathbf{v}}\color{#000}^{s+1} =
+        \min_{\widehat{\mathbf{v}}^s} \gamma_1 \mathcal{L}_{SCE}
+        \left(\Phi([\mathcal{G}(\mathbf{t}),
+        \mathcal{E}(\color{#b49}
+        \widehat{\mathbf{v}}\color{#000},\theta_e)];\theta_\phi\right) + \gamma_2
         \mathcal{L}_{\text{base}} + \mathcal{R}(\color{#b49}
         \widehat{\mathbf{v}}\color{#000}), $$ where \( \gamma_1, \gamma_2 \) are
         loss scaling factors. This objective guides reconstructions that reveal
@@ -1054,286 +1040,63 @@
       <h1>Results</h1>
       <br />
 
-      <div class="text-center">
-        <div id="inversionExample" class="carousel slide mb-4">
-          <div class="carousel-indicators">
-            <button
-              type="button"
-              data-bs-target="#inversionExample"
-              data-bs-slide-to="0"
-              class="active"
-              aria-current="true"
-              aria-label="Slide 1"
-            ></button>
-            <button
-              type="button"
-              data-bs-target="#inversionExample"
-              data-bs-slide-to="1"
-              aria-label="Slide 2"
-            ></button>
-            <button
-              type="button"
-              data-bs-target="#inversionExample"
-              data-bs-slide-to="2"
-              aria-label="Slide 3"
-            ></button
-            ><button
-              type="button"
-              data-bs-target="#inversionExample"
-              data-bs-slide-to="3"
-              aria-label="Slide 4"
-            ></button
-            ><button
-              type="button"
-              data-bs-target="#inversionExample"
-              data-bs-slide-to="4"
-              aria-label="Slide 5"
-            ></button>
-          </div>
+      <p class="absfont">
+        We invert visual-instruct-tuned
+        <strong>LLaMA3-8B</strong>, <strong>Mistral-7B</strong>, and
+        <strong>Vicuna-7/13B</strong>. Models only run inference with the
+        updatable input \( \hat{\mathbf{v}} \in \mathbb{R}^{3 \times 448 \times 448} \)
+        initialized from a Gaussian \( \hat{\mathbf{v}} \sim \mathcal{N}(0,1) \).
+      </p>
 
-          <div class="carousel-inner">
-            <div class="carousel-item active">
-              <div class="container p-0 m-2">
-                <div class="row g-3">
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/1_1.png"
-                      class="img-fluid border"
-                      alt="Image 1"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/1_2.png"
-                      class="img-fluid border"
-                      alt="Image 2"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/1_3.png"
-                      class="img-fluid border"
-                      alt="Image 3"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/1_4.png"
-                      class="img-fluid border"
-                      alt="Image 4"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div class="carousel-caption d-none d-md-block">
-                <span class="caption-text">Goldfish</span>
-              </div>
-            </div>
-            <div class="carousel-item">
-              <div class="container p-0 m-2">
-                <div class="row g-3">
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/207_1.png"
-                      class="img-fluid border"
-                      alt="Image 1"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/207_2.png"
-                      class="img-fluid border"
-                      alt="Image 2"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/207_3.png"
-                      class="img-fluid border"
-                      alt="Image 3"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/207_4.png"
-                      class="img-fluid border"
-                      alt="Image 4"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div class="carousel-caption d-none d-md-block">
-                <span class="caption-text">Golden Retriever</span>
-              </div>
-            </div>
-            <div class="carousel-item">
-              <div class="container p-0 m-2">
-                <div class="row g-3">
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/292_1.png"
-                      class="img-fluid border"
-                      alt="Image 1"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/292_2.png"
-                      class="img-fluid border"
-                      alt="Image 2"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/292_3.png"
-                      class="img-fluid border"
-                      alt="Image 3"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/292_4.png"
-                      class="img-fluid border"
-                      alt="Image 4"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div class="carousel-caption d-none d-md-block">
-                <span class="caption-text">Tiger</span>
-              </div>
-            </div>
-            <div class="carousel-item">
-              <div class="container p-0 m-2">
-                <div class="row g-3">
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/932_1.png"
-                      class="img-fluid border"
-                      alt="Image 1"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/932_2.png"
-                      class="img-fluid border"
-                      alt="Image 2"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/932_3.png"
-                      class="img-fluid border"
-                      alt="Image 3"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/932_4.png"
-                      class="img-fluid border"
-                      alt="Image 4"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div class="carousel-caption d-none d-md-block">
-                <span class="caption-text">Pretzel</span>
-              </div>
-            </div>
-            <div class="carousel-item">
-              <div class="container p-0 m-2">
-                <div class="row g-3">
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/987_1.png"
-                      class="img-fluid border"
-                      alt="Image 1"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/987_2.png"
-                      class="img-fluid border"
-                      alt="Image 2"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/987_3.png"
-                      class="img-fluid border"
-                      alt="Image 3"
-                    />
-                  </div>
-                  <div class="col-6 col-md-3">
-                    <img
-                      src="img/987_4.png"
-                      class="img-fluid border"
-                      alt="Image 4"
-                    />
-                  </div>
-                </div>
-                <div class="carousel-caption d-none d-md-block">
-                  <span class="caption-text">Corn</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <button
-            class="carousel-control-prev"
-            type="button"
-            data-bs-target="#inversionExample"
-            data-bs-slide="prev"
-          >
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Previous</span>
-          </button>
-          <button
-            class="carousel-control-next"
-            type="button"
-            data-bs-target="#inversionExample"
-            data-bs-slide="next"
-          >
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Next</span>
-          </button>
-        </div>
-        <figure id="fig-mimic" style="text-align: center">
+      <br />
+
+
+      <div class="text-center">
+        <figure id="fig-qualitative-extra" style="text-align: center">
           <img
-            src="img/results.jpg"
+            src="img/MIMIC-qualitative_extra.png"
             style="max-width: 100%"
-            alt="VLM Inversion Results"
+            alt="Additional qualitative examples of synthesized features across target tokens"
           />
           <figcaption style="font-size: 13px; margin-top: 10px">
-            Fig. 2: <strong>Image and semantic quality</strong> across accuracy,
-            perceptual (IS, LPIPS, FID), and semantic (CLIPScore) metrics. The
-            aggregated objective performs best overall, with each component
-            contributing to improved alignment or image quality.
-            <strong>Bold</strong> and <u>underlined</u> indicate top and
-            second-best results.
+            <strong>Qualitative examples of synthesized features</strong>
+            across <code>[target]</code> tokens.
+            MIMIC synthesizes coherent features across models with various target tokens.
+            Descriptive VLM features learned for target semantics are often based on
+            distinct shapes such as the examples for <code>[airliner]</code> and
+            <code>[offshore rig]</code>. Positive correlations between materials and
+            colors are also learned for instances such as <code>[school bus]</code>,
+            <code>[dome]</code>, and <code>[minivan]</code>.
           </figcaption>
         </figure>
       </div>
-      <br /><br />
-      <p class="absfont">
-        We invert <strong>LLaVA-1.5</strong> that consists of a
-        <strong>CLIP ViT-L/14</strong> vision encoder and a
-        <strong>LLaMA-3-8B-Instruct</strong> language model.
-      </p>
+
+      <br />
 
       <p class="absfont">
-        <strong>Baseline results</strong> of our method's performance across
-        configurations are shown that the aggregated objective achieves a
-        balance across metrics, with <strong>41.25% Top-1 accuracy</strong>, and
-        CLIPScore of <strong>27.42</strong>.
+        <strong>Ablation studies.</strong> We further ablate template
+        <strong>t</strong> across vision tokens \( \hat{\mathbf{v}} \).
+        MIMIC can robustly visualize the main learned features, such as water
+        reflections in <code>[dock]</code> and the dial plate in
+        <code>[magnetic compass]</code> using different text prompts while remaining consistent across prompt variations.
       </p>
 
-      <p class="absfont">
-        <strong>Qualitative results</strong> show improvements across semantic,
-        perceptual, and distributional metrics with each objective component.
-        Additional experiments on varying output lengths \( |\color{#b49}
-        \widehat{\mathbf{y}}\color{#000}| \) demonstrate that image quality
-        remains visually consistent, confirming the robustness of our approach.
-      </p>
+      <div class="text-center">
+        <figure id="fig-ablations" style="text-align: center">
+          <img
+            src="img/MIMIC-context_ablations.png"
+            style="max-width: 100%"
+            alt="Synthesized images over varying text prompts"
+          />
+          <figcaption style="font-size: 13px; margin-top: 10px">
+            <strong>Synthesized images over varying text prompts</strong> for
+            <code>dock</code>, <code>magnetic compass</code>, and <code>obelisk</code>.
+            \( \mathbf{t}_1 \): <em>What is shown in the image? a.[target] or b.[negative]</em>,
+            \( \mathbf{t}_2 \): <em>Does the image show an instance of [target] or [negative]?</em>, and
+            \( \mathbf{t}_3 \): <em>The image depicts a scene that corresponds to [target] or [negative]?</em>
+          </figcaption>
+        </figure>
+      </div>
       <br />
     </div>
     <br /><br />

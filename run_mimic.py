@@ -1,20 +1,15 @@
 # --------------------------------------------------------
 # Inversion of Visual Language Models paper
-# Animesh Jain
+# Reformulated for Direct Optimization
 # --------------------------------------------------------
 import argparse
 import gc
-import random
 import os
 import traceback
-import numpy as np
-import time
-import json
-
 import torch
-import torchvision
-
-from transformers import AutoProcessor, AutoModelForPreTraining
+from tqdm.auto import tqdm
+from safetensors.torch import load_file as load_safetensors
+from safetensors.torch import save_file as save_safetensors
 
 from accelerate import Accelerator
 from accelerate.utils import set_seed
@@ -22,13 +17,8 @@ from accelerate.utils import set_seed
 from types import MethodType
 from transformers.generation.utils import GenerationMixin
 
-
-from custom_datasets.imagenet import ImageNetDataloader, ImageNetDataset
-from helpers.utils import get_target_features_filepath, load_json
+from helpers.utils import get_target_features_filepath, load_json, load_vlm, VLM_CHOICES, VLM_LAYER_PATTERNS, VLM_HYPERPARAMS, get_image_dataloader
 from helpers.hooks import FeatureStatsHookManager
-from metrics.accuracy import compute_accuracy
-from metrics.clip_score import compute_clipscore
-from metrics.lpips_score import compute_lpips
 from mimic.trainer import MIMICTrainer
 
 # Constants
@@ -36,73 +26,12 @@ PROMPT_FILEPATH = "./data/prompts.json"
 PROMPT_LISTS = load_json(PROMPT_FILEPATH)
 AVALIABLE_CLASSES = [c["class_index"] for c in PROMPT_LISTS]
 
-
 # Reproducibility
 def set_reproducibility(seed=0):
-    """
-    Set the random seed for reproducibility.
-    """
     os.environ["PYTHONHASHSEED"] = str(seed)
     set_seed(seed, device_specific=False)
-
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
-
-def compute_metrics(
-    images,
-    target_class,
-    target_label,
-    dataloader,
-):
-    preds = compute_accuracy(
-        images,
-        target_class,
-        topk=(1, 5),
-    )
-    clipscore = compute_clipscore(images, target_label)
-    combined_score = (preds["top1"] + clipscore["clipscore"]) / 2
-
-    # lpips = compute_lpips(images, dataloader)
-    return {
-        **preds,
-        **clipscore,
-        # **lpips,
-        "combined_score": combined_score,
-    }
-
-
-def compare_results(best_results, results):
-    """
-    Compare the current results with the best results and return True if the current results are better.
-    """
-    is_better = {
-        "top1": False,
-        "clipscore": False,
-        "lpips": False,
-        "combined_score": False,
-    }
-    best_top1 = best_results.get("top1", 0.0)
-    best_clipscore = best_results.get("clipscore", 0.0)
-    best_combined_score = best_results.get("combined_score", 0.0)
-    # best_lpips = best_results.get("lpips", float("inf")) # Lower is better
-
-    top1 = results.get("top1")
-    clipscore = results.get("clipscore")
-    combined_score = results.get("combined_score")
-    # lpips = results.get("lpips") # Lower is better
-
-    if top1 >= best_top1:
-        is_better["top1"] = True
-    if clipscore >= best_clipscore - 0.05:
-        is_better["clipscore"] = True
-    if combined_score >= best_combined_score - 0.05:
-        is_better["combined_score"] = True
-    # if lpips and lpips <= best_lpips + 0.05:
-    #     is_better["lpips"] = True
-
-    return is_better
-
 
 def get_precision_settings(fp16):
     if fp16:
@@ -112,7 +41,6 @@ def get_precision_settings(fp16):
             return torch.float16, "fp16"
     else:
         return torch.float32, "no"
-
 
 def setup_trainer(config):
     set_reproducibility(config["seed"])
@@ -126,371 +54,407 @@ def setup_trainer(config):
 
     accelerator.print("\n----------- Configuration -----------")
     device_count = torch.cuda.device_count()
-    num_processes = accelerator.num_processes
-
-    if num_processes > device_count:
-        raise Exception(
-            f"Number of processes: {num_processes} must be less than or equal to number of GPUs {device_count}"
-        )
-
+    
     accelerator.print("Device count: ", device_count)
-    accelerator.print("Num processes: ", accelerator.num_processes)
     accelerator.print("Mixed precision: ", accelerator.mixed_precision)
-    accelerator.print("Data type: ", data_type)
 
     # Model loading and setup
     accelerator.print("\n--------------- Setup ---------------")
-    accelerator.print("Loading model for inversion...")
+    
+    vlm_name = config["vlm"]
+    accelerator.print(f"Loading {vlm_name}...")
 
-    vlm_checkpoint = config["vlm_checkpoint"]
-
-    vlm_model = AutoModelForPreTraining.from_pretrained(vlm_checkpoint)
+    vlm_processor, _, vlm_model = load_vlm(vlm_name)
     vlm_model = vlm_model.to(device=accelerator.device, dtype=data_type)
-    # vlm_model = vlm_model.to(device=accelerator.device)
     vlm_model.eval()
 
     if use_generate:
         vlm_model.generate = MethodType(GenerationMixin.generate, vlm_model)
 
-    vlm_processor = AutoProcessor.from_pretrained(vlm_checkpoint)
-    vlm_processor.patch_size = vlm_model.config.vision_config.patch_size
-    vlm_processor.image_processor.size = {"shortest_edge": 336}
+    if hasattr(vlm_model.config, "vision_config") and hasattr(vlm_model.config.vision_config, "patch_size"):
+        vlm_processor.patch_size = vlm_model.config.vision_config.patch_size
+    else:
+        vlm_processor.patch_size = 14
 
-    guide_model = torchvision.models.resnet50(weights="IMAGENET1K_V1")
-    guide_model = guide_model.to(device=accelerator.device, dtype=data_type)
-    # guide_model = guide_model.to(device=accelerator.device)
-    guide_model.eval()
-
-    base_hook_manager = FeatureStatsHookManager(model=vlm_model, model_type="vlm")
+    layer_regex = VLM_LAYER_PATTERNS.get(vlm_name)
+    base_hook_manager = FeatureStatsHookManager(model=vlm_model, model_type="vlm", layer_regex=layer_regex)
     base_hook_manager.register_hooks()
-
-    guide_hook_manager = FeatureStatsHookManager(model=guide_model, model_type="cnn")
-    guide_hook_manager.register_hooks()
 
     accelerator.wait_for_everyone()
 
     trainer = MIMICTrainer(
         vlm_model,
         vlm_processor,
-        guide_model,
         accelerator,
         base_hook_manager,
-        guide_hook_manager,
         use_generate=use_generate,
     )
 
     return trainer, accelerator
 
+class RunningStats:
+    """Computes running mean and variance."""
+    def __init__(self, shape, device, dtype):
+        self.n = 0
+        self.sum_mean = torch.zeros(shape, device=device, dtype=dtype)
+        self.sum_var = torch.zeros(shape, device=device, dtype=dtype)
 
-def run(trainer, parameters, accelerator):
+    def update(self, batch_means, batch_vars):
+        batch_size = batch_means.shape[0]
+        self.n += batch_size
+        self.sum_mean += batch_means.sum(dim=0)
+        self.sum_var += batch_vars.sum(dim=0)
+
+    def get_stats(self):
+        if self.n == 0:
+            return self.sum_mean, self.sum_mean 
+        return self.sum_mean / self.n, self.sum_var / self.n
+
+def extract_features_in_memory(trainer, images_dir, save_path, images_res):
+    accelerator = trainer.accelerator
+    device = accelerator.device
+    vlm_processor = trainer.base_processor
+    vlm_model = trainer.base_model
+    hooks = trainer.base_feature_hooks
+    
+    accelerator.print(f"Extracting features from {images_dir} using loaded model...")
+    
+    # Dataloader
+    dataloader = get_image_dataloader(images_dir, batch_size=16, image_size=images_res, return_pil=True)
+    stats_holders = [None] * len(hooks)
+    
+    vlm_model.eval()
+    
+    # Only iterate on main process if possible, or use one GPU. 
+    # Since we are in accelerator, we should probably just run on one device or gather.
+    # But RunningStats is local.
+    # For simplicity, let's assume running on main process or replicated.
+    # If DDP, each process processes a subset? get_image_dataloader returns global loader.
+    # We'll just run on main process if we want to save file, but that might leave others idle/hanging?
+    # Actually, DDP is tricky here.
+    # If we run on all processes, we split data.
+    # `get_image_dataloader` returns standard DataLoader. Accelerated? No.
+    # Let's assume we run this ONLY on Main Process and others wait?
+    # But `vlm_model` is likely wrapped in DDP if prepare was called? 
+    # `setup_trainer` did NOT call `accelerator.prepare(vlm_model)`. It just did `to(device)`.
+    # So `vlm_model` is a local model instance.
+    
+    pbar = tqdm(enumerate(dataloader), total=len(dataloader), desc="Extracting", disable=not accelerator.is_main_process)
+    
+    with torch.no_grad():
+        for i, batch_images in pbar:
+            try:
+                # Properly prepare inputs using chat template if available to ensure image tokens are present
+                BATCH_SIZE = len(batch_images)
+                
+                # Construct conversation for each image (Llava needs <image> token implicitly via template or explicitly)
+                # We use a dummy prompt that includes the image.
+                conversations = []
+                for _ in range(BATCH_SIZE):
+                    conversations.append([
+                        {"role": "user", "content": [{"type": "text", "text": "Describe this."}, {"type": "image"}]}
+                    ])
+                
+                texts = [vlm_processor.apply_chat_template(c, add_generation_prompt=True) for c in conversations]
+                # Wrap each image in its own list so processors that expect [[img1], [img2], ...]
+                # (e.g. Gemma3n, Qwen3) correctly associate one image per text prompt.
+                nested_images = [[img] for img in batch_images]
+                inputs = vlm_processor(images=nested_images, text=texts, return_tensors="pt", padding=True)
+
+            except Exception as e:
+                # Fallback to simple processing if templating fails (e.g. models without chat template)
+                # print(f"Template application failed: {e}. Using raw processor.")
+                try:
+                    inputs = vlm_processor(images=batch_images, text=["<image>"]*len(batch_images), return_tensors="pt", padding=True)
+                except:
+                     inputs = vlm_processor(images=batch_images, return_tensors="pt")
+                
+            inputs = inputs.to(device=device)
+            
+            try:
+                # Forward pass
+                # LlavaNext needs input_ids to calculate image features position
+                if trainer.use_generate:
+                     # If we wrapped generate, standard forward might still work as 'generate' is a method on top
+                     # vlm_model is the model instance.
+                     pass
+                
+                outputs = vlm_model(**inputs)
+                
+            except Exception as e:
+                # If full model forward fails, try running just the vision tower if accessible.
+                # Common issue: "Image features and image tokens do not match" -> fixed above by ensuring proper template?
+                # If still failing, fallback to vision tower.
+                
+                # accelerator.print(f"  > Standard forward failed: {e}. Trying vision tower only...")
+                try:
+                    vision_tower = None
+                    if hasattr(vlm_model, "vision_tower"): vision_tower = vlm_model.vision_tower
+                    elif hasattr(vlm_model, "model") and hasattr(vlm_model.model, "vision_tower"): vision_tower = vlm_model.model.vision_tower
+                    elif hasattr(vlm_model, "visual"): vision_tower = vlm_model.visual
+                    
+                    if vision_tower:
+                         # Vision tower inputs
+                         vt_args = []
+                         vt_kwargs = {}
+                         
+                         # Check signature if possible or standard keys
+                         if "pixel_values" in inputs: vt_kwargs["pixel_values"] = inputs["pixel_values"]
+                         if "images" in inputs: vt_kwargs["images"] = inputs["images"]
+                         if "grid_thw" in inputs: vt_kwargs["grid_thw"] = inputs["grid_thw"]
+                         elif "image_grid_thw" in inputs: vt_kwargs["grid_thw"] = inputs["image_grid_thw"]
+                         
+                         # Call vision tower
+                         # Some vision towers (LlavaNext) return a tuple, causing "too many values to unpack" if invoked via some wrappers.
+                         # Just calling with kwargs is usually safest.
+                         vision_tower(**vt_kwargs)
+                         # accelerator.print("  > Vision tower forward successful.")
+                    else:
+                         raise e
+                except Exception as e2:
+                    accelerator.print(f"  > Features extraction failed for batch {i}: {e} (Fallback: {e2})")
+                    continue
+
+            # Collect Stats
+            for h_idx, hook in enumerate(hooks):
+                if hook.data and hook.data.get("r_feature") is not None:
+                    mean_b, var_b = hook.data["r_feature"]
+                    if stats_holders[h_idx] is None:
+                        D = mean_b.shape[-1]
+                        stats_holders[h_idx] = RunningStats([D], device, torch.float32)
+                    stats_holders[h_idx].update(mean_b.to(torch.float32), var_b.to(torch.float32))
+                    hook.data = None # Clear
+    
+    # Save
+    tensors_to_save = {}
+    target_features_list = []
+    
+    for h_idx, hook in enumerate(hooks):
+        if stats_holders[h_idx]:
+            avg_mean, avg_var = stats_holders[h_idx].get_stats()
+            layer_name = hook.name.replace(".", "_")
+            tensors_to_save[f"{layer_name}.mean"] = avg_mean
+            tensors_to_save[f"{layer_name}.var"] = avg_var
+            target_features_list.append([avg_mean, avg_var])
+        else:
+             # Should not happen if hooks triggered
+             accelerator.print(f"Warning: No stats for hook {hook.name}")
+             target_features_list.append([torch.zeros(1).to(device), torch.zeros(1).to(device)])
+             
+    if accelerator.is_main_process:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        save_safetensors(tensors_to_save, save_path)
+        accelerator.print(f"Saved extracted features to {save_path}")
+        
+    return target_features_list
+
+
+def run_single_run(trainer, parameters, accelerator):
     try:
-        # Make directories
         if accelerator.is_main_process:
             os.makedirs(parameters["outputs_dir"], exist_ok=True)
-            os.makedirs(parameters["results_dir"], exist_ok=True)
 
-        # ----------- Load target class info ------------
-        accelerator.print("\n-------- Target Class Info ---------------")
-        prompt = next(
-            (c for c in PROMPT_LISTS if c["class_index"] == parameters["target_class"]),
-            None,
-        )
-
+        prompt = next((c for c in PROMPT_LISTS if c["class_index"] == parameters["target_class"]), None)
         if not prompt:
-            raise Exception(
-                f"Target class {parameters['target_class']} not found in {PROMPT_FILEPATH}"
-            )
+            raise Exception("Target class not found")
+        
+        # Resolve Target Features Path
+        vlm_name = parameters["vlm"]
+        class_idx = parameters["target_class"]
+        # Use class_folder (WNID) if available, else index
+        class_str = prompt.get("class_folder", str(class_idx))
+        
+        # New structure from run_feature_extraction: target_dir/vlm/dataset_name/feature_stats.safetensors
+        # Here dataset_name would be the class folder.
+        # We need to guess the folder name if we don't have it.
+        # If images_root provided, checking existence is easy.
+        
+        # 1. Look for safetensors in expected path (assuming class folder name is str(class_idx))
+        target_dir = parameters["target_features_dir"]
+        safetensors_path = os.path.join(target_dir, vlm_name, class_str, "feature_stats.safetensors")
+        
+        # 2. Legacy check
+        legacy_path = get_target_features_filepath(target_dir, class_idx)
+        
+        if os.path.exists(safetensors_path):
+            accelerator.print(f"Loading features from {safetensors_path}")
+            try:
+                stats_dict = load_safetensors(safetensors_path)
+                if not stats_dict:
+                     accelerator.print(f"Warning: {safetensors_path} is empty.")
+                     raise ValueError("Empty safetensors file")
+                     
+                # Convert to list matching hooks
+                target_features = []
+                for hook in trainer.base_feature_hooks:
+                    # Robust key matching
+                    clean_name = hook.name.replace(".", "_")
+                    
+                    found_key = None
+                    if f"{clean_name}.mean" in stats_dict:
+                        found_key = clean_name
+                    else:
+                        # Try fuzzy matching (suffix match)
+                        # hook name might be 'model.vision_tower.vision_model...'
+                        # file key might be 'vision_model...'
+                        # regex usually targets the end of the path
+                        for k in stats_dict.keys():
+                            if k.endswith(".mean"):
+                                # check if the base name matches the suffix of clean_name or vice versa
+                                k_base = k.replace(".mean", "")
+                                # normalize underscore vs dot
+                                k_norm = k_base.replace(".", "_")
+                                name_norm = clean_name.replace(".", "_")
+                                
+                                if name_norm.endswith(k_norm) or k_norm.endswith(name_norm):
+                                    found_key = k_base
+                                    break
+                    
+                    if found_key:
+                        mean = stats_dict[f"{found_key}.mean"].to(accelerator.device)
+                        var = stats_dict[f"{found_key}.var"].to(accelerator.device)
+                        target_features.append([mean, var])
+                    else:
+                        raise KeyError(f"Could not find match for hook {clean_name} in file keys: {list(stats_dict.keys())[:5]}...")
 
-        target_class = prompt["class_index"]
-        chat_sequence = prompt["chat_sequence"]
+            except (ValueError, KeyError, Exception) as e:
+                accelerator.print(f"Failed to load existing features: {e}")
+                accelerator.print("Will attempt to re-extract.")
+                target_features = None # Trigger extraction
+                
+        elif os.path.exists(legacy_path):
+            accelerator.print(f"Loading features from {legacy_path}")
+            target_features = torch.load(legacy_path, map_location=accelerator.device)
+        else:
+            # Need extraction
+            target_features = None
 
-        accelerator.print("Target class: ", target_class)
-        accelerator.print("Chat Sequence: ", chat_sequence)
+        if target_features is None:
+            # Check if we can extract
+            accelerator.print(f"Target features not found or invalid.")
+            
+            if not parameters["images_root"]:
+                raise FileNotFoundError("Features missing and --images_root not provided. Cannot extract.")
+            
+            # Identify class folder
+            images_root = parameters["images_root"]
+            class_folder = os.path.join(images_root, class_str)
+            
+            # Try finding folder by name if not index/wnid
+            if not os.path.exists(class_folder) and "class_name" in prompt:
+                 class_folder_name = os.path.join(images_root, prompt["class_name"])
+                 if os.path.exists(class_folder_name):
+                     class_folder = class_folder_name
 
-        # ------------- Load target features ------------
-        target_features_filepath = get_target_features_filepath(
-            parameters["target_features_dir"], target_class
-        )
-        target_features = torch.load(
-            target_features_filepath, map_location=accelerator.device
-        )
-        accelerator.print(
-            f"Target feature stats loaded from {target_features_filepath}"
-        )
+            # Fallback to index if WNID failed
+            if not os.path.exists(class_folder) and class_str != str(class_idx):
+                 class_folder_idx = os.path.join(images_root, str(class_idx))
+                 if os.path.exists(class_folder_idx):
+                     class_folder = class_folder_idx
+            
+            if not os.path.exists(class_folder):
+                 raise FileNotFoundError(f"Could not find images for class {class_idx} (Folder: {class_str}) in {images_root}")
+            
+            accelerator.print(f"Extracting features from {class_folder} using model in memory...")
 
-        dataloader = ImageNetDataloader(
-            dataset=ImageNetDataset(
-                class_index=target_class, root_dir=parameters["dataset_dir"]
-            ),
-            batch_size=100,
-        )
+            # Run In-Memory Extraction
+            target_features = extract_features_in_memory(trainer, class_folder, safetensors_path, VLM_HYPERPARAMS[vlm_name]["image_resolution"])
+            accelerator.wait_for_everyone()
 
-        # Training
-        accelerator.print("\n------------ Training started ------------")
-        start_time = time.time()
+        
+        accelerator.print("\n------------ MIMIC Optimization Started ------------")
+
         trainer.train(
-            chat_sequence,
-            target_class,
+            prompt["chat_sequence"],
+            prompt["class_index"],
             target_features,
             parameters,
-            compute_metrics=lambda images, target_class, target_label: compute_metrics(
-                images, target_class, target_label, dataloader
-            ),
-            compare_results=lambda best_results, results: compare_results(
-                best_results, results
-            ),
-        )
-        best_results = trainer.best_results
-        best_iterations = trainer.best_iterations
-        end_time = time.time()
-
-        accelerator.print("\n------------ Training ended ------------")
-        print(
-            f"Training time @ rank-{accelerator.local_process_index}: {(end_time - start_time) / 60:.2f} minutes"
+            enable_logging=accelerator.is_main_process and parameters.get("wandb", 1),
+            return_images=False,
         )
 
-        return best_results, best_iterations
+        accelerator.print("\n------------ MIMIC Optimization Finished ------------")
+        
     except Exception:
-        tb_str = traceback.format_exc()
-        accelerator.print(tb_str)
+        accelerator.print(traceback.format_exc())
     finally:
-        # Clean up
         accelerator.wait_for_everyone()
         torch.cuda.empty_cache()
         gc.collect()
 
-
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--vlm_checkpoint",
-        type=str,
-        required=True,
-        help="Path to the VLM checkpoint.",
-    )
-    parser.add_argument(
-        "--wandb_project",
-        type=str,
-        default="mimic",
-        required=False,
-        help="Wandb project name. '_<target_class>' will be appended. Default: mimic",
-    )
-    parser.add_argument(
-        "--dataset_dir",
-        type=str,
-        required=True,
-        help="Imagenet dataset directory.",
-    )
-    parser.add_argument(
-        "--seed",
-        default=0,
-        type=int,
-        help="Seed for reproducibility. Default: 0",
-    )
-    parser.add_argument(
-        "--batch_size_per_device",
-        default=2,
-        type=int,
-        help="Batch size per device for the image reconstruction of the target class. Default: 2",
-    )
-    parser.add_argument(
-        "--image_resolution",
-        default=336,
-        type=int,
-        help="Image resolution of the image to be inverted. Recommended to use the same resolution as the VLM model. Default: 336",
-    )
-    parser.add_argument(
-        "--grad_accumulation_steps",
-        default=4,
-        type=int,
-        help="Gradient accumulation steps. Default: 4",
-    )
-    parser.add_argument(
-        "--n_iterations",
-        default=3000,
-        type=int,
-        help="Number of total iterations including jitter. Default: 3000",
-    )
-    parser.add_argument(
-        "--n_jitter_iterations",
-        type=int,
-        default=0,
-        help="Number of iterations with jitter, use 0 to use no jitter. Default: 0",
-    )
-    parser.add_argument("--jitter", default=8, type=int, help="Input jitter")
-    parser.add_argument(
-        "--fp16",
-        action="store_true",
-        help="Use FP16 for optimization, if selected BF16 will be preferred",
-    )
-    parser.add_argument(
-        "--outputs_dir",
-        type=str,
-        default="./outputs",
-        help="Directory to store inverted images during training. Default: ./outputs",
-    )
-    parser.add_argument(
-        "--results_dir",
-        type=str,
-        default="./results",
-        help="Directory to store the final best inverted images after the training. Default: ./results",
-    )
-    parser.add_argument(
-        "--target_features_dir",
-        type=str,
-        default="./target_features",
-        help="Directory containing pre-computed target feature stats. Default: ./data/target_features",
-    )
-    parser.add_argument(
-        "--do_flip", action="store_true", help="Apply flip during model inversion"
-    )
-    parser.add_argument(
-        "--use_blank_image",
-        action="store_true",
-        help="Use blank image as input instead of noise",
-    )
-    parser.add_argument(
-        "--target_class",
-        type=int,
-        required=True,
-        choices=AVALIABLE_CLASSES,
-        help="Target class from the ImageNet classes.",
-    )
+    # Configuration
+    parser.add_argument("--vlm", type=str, default="llava-llama3-8b", choices=VLM_CHOICES)
+    parser.add_argument("--wandb_project", type=str, default="mimic")
+    parser.add_argument("--seed", default=0, type=int)
 
-    parser.add_argument(
-        "--verifier_arch",
-        type=str,
-        default="mobilenet_v2",
-        help="Arch name from torchvision models to act as a verifier. Default: mobilenet_v2",
-    )
+    # Image Generation Params
+    parser.add_argument("--batch_size_per_device", default=1, type=int)
+    parser.add_argument("--grad_accumulation_steps", default=1, type=int)
 
-    # Coefficients for optimization
-    parser.add_argument(
-        "--base_feature_loss_type",
-        type=str,
-        default="l2",
-        help="Use L2-norm or KL div for base feature loss. Default: l2",
-    )
-    parser.add_argument(
-        "--lr",
-        type=float,
-        default=0.25,
-        help="Learning rate for optimization. Default: 0.25",
-    )
-    parser.add_argument(
-        "--min_lr",
-        type=float,
-        default=0.005,
-        help="Minimum learning rate for scheduler. Default: 0.005",
-    )
-    parser.add_argument(
-        "--warmup_length",
-        type=int,
-        default=100,
-        help="Warmup length for cosine scheduler learning rate. Default: 100",
-    )
-    parser.add_argument(
-        "--save_every",
-        type=int,
-        default=500,
-        help="Save every n iterations. Default: 500",
-    )
-    parser.add_argument(
-        "--log_every",
-        type=int,
-        default=500,
-        help="Log every n iterations. Default: 500",
-    )
-    parser.add_argument(
-        "--eval_every",
-        type=int,
-        default=500,
-        help="Evaluate every n iterations. Default: 500",
-    )
-    parser.add_argument(
-        "--first_bn_multiplier",
-        type=float,
-        default=10.0,
-        help="Additional multiplier on first BN layer of the guide model. Default: 10.0",
-    )
-    parser.add_argument(
-        "--main_loss_scale",
-        type=float,
-        default=0.05,
-        help="Coefficient for the output loss in optimization",
-    )
-    parser.add_argument(
-        "--feature_guide_scale",
-        type=float,
-        default=0.005,
-        help="Coefficient for the guide model feature regularization",
-    )
-    parser.add_argument(
-        "--feature_base_scale",
-        type=float,
-        default=0.0001,
-        help="Coefficient for the base model feature regularization",
-    )
-    parser.add_argument(
-        "--patch_prior_scale",
-        type=float,
-        default=0.00001,
-        help="Coefficient for the patch prior regularization",
-    )
-    parser.add_argument(
-        "--tv_l1_scale",
-        type=float,
-        default=0.0001,
-        help="Coefficient for Total Variation L1 regularization",
-    )
-    parser.add_argument(
-        "--tv_l2_scale",
-        type=float,
-        default=0.000001,
-        help="coefficient for Total Variation L2 regularization",
-    )
-    parser.add_argument(
-        "--l2_scale",
-        type=float,
-        default=0.000001,
-        help="Coefficient for L2 regularization",
-    )
-    parser.add_argument(
-        "--use_generate",
-        action="store_true",
-        help="Coefficient for L2 regularization",
-    )
+    parser.add_argument("--n_iterations", default=500, type=int, help="Iterations per MIMIC run")
+    parser.add_argument("--n_jitter_iterations", type=int, default=500)
+    parser.add_argument("--jitter", default=16, type=int)
+    
+    parser.add_argument("--fp16", action="store_true")
+    parser.add_argument("--outputs_dir", type=str, default="./outputs")
+    parser.add_argument("--results_dir", type=str, default="./results")
+    parser.add_argument("--target_features_dir", type=str, default="./target_features")
+    parser.add_argument("--do_flip", action="store_true")
+    parser.add_argument("--use_blank_image", action="store_true")
+    parser.add_argument("--target_class", type=int, required=True, choices=AVALIABLE_CLASSES, default=88)
+    parser.add_argument("--images_root", type=str, default=None, help="Root directory for images (e.g. ImageNet val/train folder). Used for extraction if stats missing.")
+
+    # Base Coefficients (Initial Policy Mean)
+    parser.add_argument("--base_feature_loss_type", type=str, default="l2")
+    parser.add_argument("--lr", type=float, default=0.05, help="Image optimization LR")
+    parser.add_argument("--min_lr", type=float, default=1e-4)
+    parser.add_argument("--warmup_length", type=int, default=50)
+    
+    parser.add_argument("--save_every", type=int, default=1)
+    parser.add_argument("--log_every", type=int, default=1)
+    parser.add_argument("--eval_every", type=int, default=0)
+
+    parser.add_argument("--main_loss_scale", type=float, default=None)
+    parser.add_argument("--feature_base_scale", type=float, default=None)
+    parser.add_argument("--patch_prior_scale", type=float, default=None)
+    parser.add_argument("--patch_internal_scale", type=float, default=None)
+    parser.add_argument("--tv_l1_scale", type=float, default=None)
+    parser.add_argument("--tv_l2_scale", type=float, default=None)
+    parser.add_argument("--l2_scale", type=float, default=None)
+
+    parser.add_argument("--use_generate", action="store_true")
+    parser.add_argument("--use_fft", action="store_true")
+    parser.add_argument("--wandb", type=int, default=1, help="Use wandb logging")
+    
+    
+
     args = parser.parse_args()
-
+    
+    vlm_hyperparams = VLM_HYPERPARAMS.get(args.vlm, {})
+    for k, v in vlm_hyperparams.items():
+        if hasattr(args, k) and getattr(args, k) is None:
+            setattr(args, k, v)
+            print(f"Used default {k}={v}")
+        elif not hasattr(args, k):
+            setattr(args, k, v)
+    
+    results_dir = args.results_dir+f"/{args.vlm}"
+    if not os.path.exists(results_dir):
+        print(f"Creating results directory at {results_dir}")
+        os.makedirs(results_dir)
+    outputs_dir = args.outputs_dir+f"/{args.vlm}"
+    if not os.path.exists(outputs_dir):
+        print(f"Creating outputs directory at {outputs_dir}")
+        os.makedirs(outputs_dir)
     parameters = vars(args)
-    parameters["wandb_project"] = (
-        parameters["wandb_project"] + f"_{parameters['target_class']}"
-    )
-    config_keys = [
-        "vlm_checkpoint",
-        "fp16",
-        "seed",
-        "grad_accumulation_steps",
-        "use_generate",
-    ]
+    
+    config_keys = ["vlm", "fp16", "seed", "grad_accumulation_steps", "use_generate"]
     config = {k: parameters[k] for k in config_keys}
+    
     trainer, accelerator = setup_trainer(config)
-    parameters["local_rank"] = accelerator.local_process_index
-
-    accelerator.print(
-        f"\n------------ Target Class: {parameters['target_class']} | Parameters -------------"
-    )
-    accelerator.print(f"{json.dumps(parameters, indent=2)}")
-
-    best_results, best_iteration = run(trainer, parameters, accelerator)
-
-    # Since we are gathering inputs for compute_metrics, only rank 0 will have best_results
-    accelerator.print(
-        f"Best results @ {best_iteration}: {json.dumps(best_results, indent=2)}"
-    )
-
-    accelerator.wait_for_everyone()
-
+    run_single_run(trainer, parameters, accelerator)
 
 if __name__ == "__main__":
     main()

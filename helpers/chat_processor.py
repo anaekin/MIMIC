@@ -19,6 +19,7 @@ class ChatProcessor:
     """
 
     def __init__(self, vlm_processor, image_token="<image>", use_generate=False):
+        self.processor = vlm_processor
         self.image_processor = vlm_processor.image_processor
         self.image_token = image_token
         self.tokenizer = vlm_processor.tokenizer
@@ -108,6 +109,35 @@ class ChatProcessor:
 
     #     return labels
 
+    def _create_qwen_chat_list(self, chat, image=None):
+        """
+        Create a chat list compatible with Qwen3VL processor using explicit structured content.
+        """
+        user_msg, assistant_msg = chat[0]
+        content = []
+        if image is not None:
+             content.append({"type": "image", "image": image})
+        
+        content.append({"type": "text", "text": user_msg})
+        
+        conversation = [
+             {
+                "role": "user",
+                "content": content
+             },
+             {
+                "role": "assistant",
+                "content": assistant_msg
+             }
+        ]
+        
+        for u, a in chat[1:]:
+             conversation.append({"role": "user", "content": u})
+             conversation.append({"role": "assistant", "content": a})
+        
+        conversation.pop() # Remove target
+        return conversation
+
     def preprocess(self, chat, images=None, batch_size=1):
         """
         Tokenize chat sequence into input_ids, attention_mask, labels, and pixel_values.
@@ -118,25 +148,55 @@ class ChatProcessor:
           batch_size: Batch size for tokenization
 
         """
-        prompt = self._create_chat_prompt(chat)
+        processor_name = self.processor.__class__.__name__.lower()
+        is_qwen = "<|vision_start|>" in self.image_token or "qwen" in processor_name
+        is_gemma = "gemma" in processor_name
+        
         target = chat[-1][1]
-
-        print("Prompt: ", prompt)
-        print("Target: ", target)
-
-        prompts = [prompt] * batch_size
         targets = [target] * batch_size
 
-        pixel_values = (
-            None
-            if not images
-            else self.image_processor(images, return_tensors="pt")["pixel_values"]
-        )
+        image_inputs = {}
+        if (is_qwen or is_gemma) and images:
+            # Qwen/Gemma path: Use processor.apply_chat_template with structured multimodal input
+            prompts = []
+            for b in range(batch_size):
+                img = images[b] if b < len(images) else images[0]
+                prompts.append(self._create_qwen_chat_list(chat, img))
 
-        # Tokenize with return_offsets_mapping for masking
-        prompt_ids = self.tokenizer(
-            prompts, return_tensors="pt", add_special_tokens=False
-        )["input_ids"]
+            inputs = self.processor.apply_chat_template(
+                prompts,
+                tokenize=True,
+                add_generation_prompt=True,
+                return_dict=True,
+                return_tensors="pt"
+            )
+
+            prompt_ids = inputs["input_ids"]
+            # Qwen processor often returns 'pixel_values' and 'image_grid_thw'
+            image_inputs = {k: v for k, v in inputs.items() if k != "input_ids" and k != "attention_mask"}
+            pixel_values = image_inputs.get("pixel_values")
+             
+        else:
+            # Standard Path (LLaVA-like)
+            prompt = self._create_chat_prompt(chat)
+            prompts = [prompt] * batch_size
+
+            if images:
+                image_inputs = self.image_processor(images, return_tensors="pt")
+                pixel_values = image_inputs.get("pixel_values")
+            else:
+                pixel_values = None
+
+            # Tokenize with return_offsets_mapping for masking
+            if images is not None and len(images) > 0 and self.processor:
+                # Use processor to correctly expand image tokens
+                prompt_ids = self.processor(
+                    text=prompts, images=images, return_tensors="pt", add_special_tokens=False
+                )["input_ids"]
+            else:
+                prompt_ids = self.tokenizer(
+                    prompts, return_tensors="pt", add_special_tokens=False
+                )["input_ids"]
 
         target_ids = self.tokenizer(
             targets, return_tensors="pt", add_special_tokens=False
@@ -148,9 +208,13 @@ class ChatProcessor:
             attention_mask = torch.ones_like(input_ids)
         else:
             # labels = self._create_labels(input_ids)
+            # Ensure devices match
+            if prompt_ids.device != target_ids.device:
+                target_ids = target_ids.to(prompt_ids.device)
+                
             input_ids = torch.cat([prompt_ids, target_ids], dim=1)
             labels = torch.full_like(input_ids, -100)
             labels[:, -target_ids.shape[1] :] = target_ids
             attention_mask = torch.ones_like(input_ids)
 
-        return input_ids, attention_mask, labels, pixel_values
+        return input_ids, attention_mask, labels, pixel_values, image_inputs
